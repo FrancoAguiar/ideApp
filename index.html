@@ -10,16 +10,19 @@
       --bg: #f8f5ec;
       --card: #ffffff;
       --ink: #20251f;
-      --muted: #6e756a;
-      --soft: #eef3e8;
+      --muted: #697263;
+      --soft: #eef5e8;
       --green: #58cc02;
-      --green-dark: #45a600;
+      --green-dark: #43a300;
       --green-soft: #ddf8cf;
+      --green-pale: #f0ffe8;
       --yellow: #ffe071;
       --orange: #ffb84d;
-      --line: #e9eadf;
+      --red: #ff6b5f;
+      --line: #e8eadf;
       --shadow: 0 14px 34px rgba(38, 50, 29, 0.09);
-      --button-shadow: 0 6px 0 #45a600;
+      --soft-shadow: 0 10px 24px rgba(38, 50, 29, 0.06);
+      --button-shadow: 0 6px 0 #43a300;
       --radius-xl: 30px;
       --radius-lg: 24px;
       --radius-md: 18px;
@@ -40,8 +43,8 @@
       margin: 0;
       color: var(--ink);
       background:
-        radial-gradient(circle at 18% 2%, rgba(255, 224, 113, 0.35), transparent 26%),
-        linear-gradient(180deg, #fbf8ef 0%, var(--bg) 46%, #f4f7ef 100%);
+        radial-gradient(circle at 18% 2%, rgba(255, 224, 113, 0.36), transparent 26%),
+        linear-gradient(180deg, #fbf8ef 0%, var(--bg) 48%, #f4f7ef 100%);
       letter-spacing: 0;
     }
 
@@ -57,11 +60,18 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
     .app-shell {
       width: min(100%, 480px);
       min-height: 100vh;
       margin: 0 auto;
-      padding: max(18px, env(safe-area-inset-top)) 18px calc(102px + env(safe-area-inset-bottom));
+      padding: max(18px, env(safe-area-inset-top)) 18px calc(104px + env(safe-area-inset-bottom));
       position: relative;
     }
 
@@ -77,22 +87,16 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 12px;
+      min-height: 32px;
+      padding: 7px 12px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
-      border: 1px solid rgba(233, 234, 223, 0.8);
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(233, 234, 223, 0.84);
       color: #4d5b44;
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 850;
       box-shadow: 0 8px 20px rgba(52, 69, 40, 0.06);
       white-space: nowrap;
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0;
     }
 
     h1 {
@@ -137,9 +141,9 @@
       gap: 10px;
       padding: 13px;
       border-radius: 22px;
-      background: rgba(255, 255, 255, 0.82);
-      border: 1px solid rgba(233, 234, 223, 0.86);
-      box-shadow: 0 10px 24px rgba(38, 50, 29, 0.06);
+      background: rgba(255, 255, 255, 0.84);
+      border: 1px solid rgba(233, 234, 223, 0.88);
+      box-shadow: var(--soft-shadow);
     }
 
     .stat-icon {
@@ -147,6 +151,7 @@
       height: 36px;
       display: grid;
       place-items: center;
+      flex: 0 0 auto;
       border-radius: 14px;
       background: var(--soft);
       font-size: 19px;
@@ -157,6 +162,24 @@
       line-height: 1.18;
       color: #4f5849;
       font-weight: 850;
+    }
+
+    .screen {
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .screen.active {
+      display: block;
+      animation: screenIn 260ms ease forwards;
+    }
+
+    @keyframes screenIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .capture-card {
@@ -178,11 +201,33 @@
       background: linear-gradient(90deg, var(--green), #91e85d, var(--yellow));
     }
 
+    .capture-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
     .capture-card h2 {
       font-size: 24px;
       line-height: 1.1;
       letter-spacing: 0;
-      margin-bottom: 14px;
+    }
+
+    .ai-soon {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: #fff6cc;
+      color: #715719;
+      font-size: 11px;
+      line-height: 1.1;
+      font-weight: 950;
+      white-space: nowrap;
+      box-shadow: inset 0 -2px 0 rgba(231, 187, 64, 0.28);
     }
 
     .idea-input-wrap {
@@ -191,7 +236,7 @@
 
     textarea {
       width: 100%;
-      min-height: 132px;
+      min-height: 128px;
       resize: none;
       border: 2px solid #edf0e7;
       outline: 0;
@@ -228,25 +273,128 @@
       font-size: 18px;
     }
 
-    .primary-button {
+    .primary-button,
+    .secondary-button {
       width: 100%;
       min-height: 58px;
       margin-top: 15px;
       border-radius: 19px;
-      background: var(--green);
-      color: white;
       font-weight: 950;
       font-size: 17px;
-      box-shadow: var(--button-shadow);
       transform: translateY(0);
-      transition: transform 120ms ease, box-shadow 120ms ease, filter 160ms ease;
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 160ms ease, background 160ms ease;
+    }
+
+    .primary-button {
+      background: var(--green);
+      color: white;
+      box-shadow: var(--button-shadow);
+    }
+
+    .secondary-button {
+      background: #f6f8f1;
+      color: #4d5b44;
+      box-shadow: 0 5px 0 #dfe6d5;
+    }
+
+    .primary-button:active,
+    .primary-button.pressed,
+    .secondary-button:active {
+      transform: translateY(5px);
+      filter: saturate(1.08);
     }
 
     .primary-button:active,
     .primary-button.pressed {
-      transform: translateY(5px);
       box-shadow: 0 1px 0 var(--green-dark);
-      filter: saturate(1.08);
+    }
+
+    .secondary-button:active {
+      box-shadow: 0 1px 0 #dfe6d5;
+    }
+
+    .processing {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 70px;
+      margin-top: 14px;
+      border-radius: 21px;
+      background: var(--green-pale);
+      color: #317a02;
+      font-size: 15px;
+      font-weight: 950;
+      border: 1px solid #d9efcc;
+    }
+
+    .processing.show {
+      display: flex;
+    }
+
+    .dots {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulseDot 820ms infinite ease-in-out;
+    }
+
+    .dots span:nth-child(2) {
+      animation-delay: 110ms;
+    }
+
+    .dots span:nth-child(3) {
+      animation-delay: 220ms;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: translateY(0); opacity: 0.45; }
+      50% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    .preview-card {
+      display: none;
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: 23px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfff7 100%);
+      border: 1px solid #e4efd9;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    }
+
+    .preview-card.show {
+      display: block;
+      animation: cardIn 360ms cubic-bezier(.2, .95, .25, 1.12);
+    }
+
+    .preview-item + .preview-item {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #ecf1e5;
+    }
+
+    .preview-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #6c7465;
+      font-size: 13px;
+      font-weight: 950;
+      margin-bottom: 6px;
+    }
+
+    .preview-value {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.4;
+      font-weight: 750;
     }
 
     .feedback {
@@ -255,9 +403,10 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      text-align: center;
       color: var(--green-dark);
       font-size: 14px;
-      font-weight: 900;
+      font-weight: 950;
       opacity: 0;
       transform: translateY(8px);
       transition: opacity 180ms ease, transform 180ms ease;
@@ -299,6 +448,12 @@
       letter-spacing: 0;
     }
 
+    .section-note {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
     .count-badge {
       display: inline-flex;
       align-items: center;
@@ -310,6 +465,48 @@
       font-size: 13px;
       font-weight: 950;
       white-space: nowrap;
+    }
+
+    .month-section {
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .month-section + .month-section {
+      margin-top: 27px;
+    }
+
+    .month-section::before {
+      content: "";
+      position: absolute;
+      top: 43px;
+      bottom: 10px;
+      left: 5px;
+      width: 3px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #bdeea1, rgba(189, 238, 161, 0.12));
+    }
+
+    .month-title {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 13px;
+      font-size: 25px;
+      line-height: 1.1;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .month-title::before {
+      content: "";
+      width: 13px;
+      height: 13px;
+      margin-left: -18px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px #e9fbdf;
     }
 
     .ideas-list {
@@ -325,14 +522,27 @@
       border-radius: var(--radius-lg);
       background: var(--card);
       border: 1px solid rgba(233, 234, 223, 0.9);
-      box-shadow: 0 11px 26px rgba(38, 50, 29, 0.07);
+      box-shadow: var(--soft-shadow);
+      transform: translateY(0) scale(1);
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
       animation: cardIn 380ms cubic-bezier(.2, .95, .25, 1.12);
+    }
+
+    .idea-card:active,
+    .idea-card:hover,
+    .habit-card:active,
+    .habit-card:hover,
+    .setting-row:active,
+    .setting-row:hover {
+      transform: translateY(2px) scale(0.99);
+      box-shadow: 0 7px 18px rgba(38, 50, 29, 0.07);
+      border-color: #dce7d1;
     }
 
     @keyframes cardIn {
       from {
         opacity: 0;
-        transform: translateY(-12px) scale(0.97);
+        transform: translateY(-12px) scale(0.96);
       }
       to {
         opacity: 1;
@@ -374,16 +584,16 @@
       flex: 0 0 auto;
       color: #8b9384;
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 850;
       white-space: nowrap;
       padding-top: 2px;
     }
 
     .idea-copy {
-      color: #656e5d;
+      color: #626c5a;
       font-size: 14px;
       line-height: 1.35;
-      font-weight: 620;
+      font-weight: 650;
       margin-bottom: 11px;
     }
 
@@ -416,38 +626,132 @@
       color: #338203;
     }
 
-    .chips {
-      display: flex;
-      gap: 9px;
-      overflow-x: auto;
-      padding: 1px 2px 5px;
-      scrollbar-width: none;
+    .habit-grid {
+      display: grid;
+      gap: 13px;
     }
 
-    .chips::-webkit-scrollbar {
-      display: none;
+    .habit-card {
+      display: grid;
+      grid-template-columns: 52px 1fr 24px;
+      gap: 13px;
+      align-items: center;
+      width: 100%;
+      min-height: 92px;
+      padding: 16px;
+      text-align: left;
+      border-radius: var(--radius-lg);
+      background: var(--card);
+      border: 1px solid rgba(233, 234, 223, 0.9);
+      color: var(--ink);
+      box-shadow: var(--soft-shadow);
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
     }
 
-    .chip {
-      flex: 0 0 auto;
-      min-height: 42px;
-      padding: 0 15px;
-      border-radius: 999px;
-      background: #ffffff;
-      border: 1px solid rgba(233, 234, 223, 0.96);
-      color: #535d4c;
-      font-size: 14px;
+    .habit-icon,
+    .setting-icon {
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: var(--soft);
+      box-shadow: inset 0 -4px 0 rgba(88, 204, 2, 0.12);
+      font-size: 24px;
+    }
+
+    .habit-icon {
+      width: 52px;
+      height: 52px;
+    }
+
+    .habit-title,
+    .setting-title {
+      display: block;
+      font-size: 16px;
       font-weight: 950;
-      box-shadow: 0 7px 17px rgba(38, 50, 29, 0.06);
-      transition: transform 130ms ease, box-shadow 130ms ease, background 130ms ease;
+      line-height: 1.15;
+      margin-bottom: 5px;
     }
 
-    .chip:active,
-    .chip.active {
-      transform: translateY(3px);
-      background: var(--green-soft);
-      color: #317a02;
-      box-shadow: 0 2px 0 rgba(49, 122, 2, 0.2);
+    .habit-copy,
+    .setting-copy {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 720;
+      line-height: 1.25;
+    }
+
+    .chevron {
+      color: #a3aa9b;
+      font-size: 24px;
+      font-weight: 850;
+      justify-self: end;
+    }
+
+    .fake-panel {
+      display: none;
+      margin-top: 14px;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, #fffef7 0%, #eef9e8 100%);
+      border: 1px solid rgba(220, 235, 209, 0.95);
+      box-shadow: var(--soft-shadow);
+      animation: cardIn 260ms ease;
+    }
+
+    .fake-panel.show {
+      display: block;
+    }
+
+    .fake-panel h3 {
+      margin-bottom: 8px;
+      font-size: 18px;
+      font-weight: 950;
+    }
+
+    .fake-panel p {
+      color: #4e5b46;
+      font-size: 14px;
+      line-height: 1.4;
+      font-weight: 750;
+    }
+
+    .settings-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 22px;
+      gap: 13px;
+      align-items: center;
+      width: 100%;
+      min-height: 72px;
+      padding: 13px 14px;
+      text-align: left;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(233, 234, 223, 0.9);
+      color: var(--ink);
+      box-shadow: 0 8px 20px rgba(38, 50, 29, 0.055);
+      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    }
+
+    .setting-icon {
+      width: 44px;
+      height: 44px;
+      font-size: 20px;
+    }
+
+    .setting-row.danger .setting-icon {
+      background: #fff0ee;
+      box-shadow: inset 0 -4px 0 rgba(255, 107, 95, 0.12);
+    }
+
+    .setting-row.danger .setting-title {
+      color: #b64036;
     }
 
     .reminder-card {
@@ -459,7 +763,7 @@
       border-radius: var(--radius-lg);
       background: linear-gradient(135deg, #fffef7 0%, #eef9e8 100%);
       border: 1px solid rgba(220, 235, 209, 0.95);
-      box-shadow: 0 10px 24px rgba(38, 50, 29, 0.06);
+      box-shadow: var(--soft-shadow);
     }
 
     .reminder-icon {
@@ -494,12 +798,18 @@
       font-weight: 850;
       line-height: 1;
       box-shadow: 0 7px 0 var(--green-dark), 0 16px 28px rgba(88, 204, 2, 0.28);
-      transition: transform 120ms ease, box-shadow 120ms ease;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 160ms ease;
     }
 
     .fab:active {
       transform: translateY(5px);
       box-shadow: 0 2px 0 var(--green-dark), 0 10px 20px rgba(88, 204, 2, 0.22);
+    }
+
+    .fab.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px) scale(0.94);
     }
 
     .bottom-nav {
@@ -513,7 +823,7 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-      background: rgba(255, 255, 255, 0.88);
+      background: rgba(255, 255, 255, 0.9);
       border-top: 1px solid rgba(224, 229, 215, 0.9);
       box-shadow: 0 -14px 34px rgba(38, 50, 29, 0.08);
       backdrop-filter: blur(18px);
@@ -531,7 +841,7 @@
       color: #8a9383;
       font-size: 12px;
       font-weight: 950;
-      transition: background 160ms ease, color 160ms ease, transform 120ms ease;
+      transition: background 180ms ease, color 180ms ease, transform 120ms ease;
     }
 
     .tab-icon {
@@ -567,6 +877,16 @@
       }
     }
 
+    @media (max-width: 390px) {
+      .capture-head {
+        display: block;
+      }
+
+      .ai-soon {
+        margin-top: 10px;
+      }
+    }
+
     @media (max-width: 370px) {
       .app-shell {
         padding-left: 14px;
@@ -596,9 +916,9 @@
   <main class="app-shell" aria-label="Ideapp">
     <header class="topbar">
       <div>
-        <div class="eyebrow">3 ideas guardadas hoy</div>
-        <h1>Hola Fran</h1>
-        <p class="subtitle">No pierdas ninguna idea.</p>
+        <div class="eyebrow" id="todaySaved">3 ideas guardadas hoy</div>
+        <h1 id="screenHeading">Hola Fran</h1>
+        <p class="subtitle" id="screenSubtitle">No pierdas ninguna idea.</p>
       </div>
       <div class="avatar" aria-hidden="true">💡</div>
     </header>
@@ -614,86 +934,293 @@
       </div>
     </section>
 
-    <section class="capture-card" id="captureCard">
-      <h2>¿Qué idea apareció?</h2>
-      <div class="idea-input-wrap">
-        <textarea id="ideaInput" placeholder="Escribila antes de que desaparezca..." aria-label="Escribir idea"></textarea>
-        <span class="spark" aria-hidden="true">✨</span>
-      </div>
-      <button class="primary-button" id="saveIdea" type="button">Guardar idea</button>
-      <div class="feedback" id="feedback" role="status" aria-live="polite">Listo, esta idea ya no se pierde.</div>
+    <section class="screen active" id="homeScreen" data-title="Hola Fran" data-subtitle="No pierdas ninguna idea." data-eyebrow="3 ideas guardadas hoy">
+      <section class="capture-card" id="captureCard">
+        <div class="capture-head">
+          <h2>¿Qué idea apareció?</h2>
+          <span class="ai-soon">✨ Próximamente: corrección automática con IA</span>
+        </div>
+
+        <div class="idea-input-wrap">
+          <textarea id="ideaInput" placeholder="Escribila aunque esté desordenada..." aria-label="Escribir idea"></textarea>
+          <span class="spark" aria-hidden="true">✨</span>
+        </div>
+
+        <button class="primary-button" id="organizeIdea" type="button">Organizar idea</button>
+
+        <div class="processing" id="processing" aria-live="polite">
+          Procesando
+          <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        </div>
+
+        <div class="preview-card" id="previewCard" aria-live="polite">
+          <div class="preview-item">
+            <div class="preview-label">💡 Título</div>
+            <p class="preview-value" id="previewTitle">App para recordar ideas</p>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">✍️ Texto corregido</div>
+            <p class="preview-value" id="previewText">Una aplicación que me ayuda a recordar ideas que se me ocurren durante el día.</p>
+          </div>
+          <div class="preview-item">
+            <div class="preview-label">📝 Resumen</div>
+            <p class="preview-value" id="previewSummary">Una herramienta simple para capturar ideas rápidas, organizarlas y recuperarlas más adelante.</p>
+          </div>
+          <button class="primary-button" id="saveIdea" type="button">Guardar idea</button>
+          <button class="secondary-button" id="editIdea" type="button">Editar texto</button>
+        </div>
+
+        <div class="feedback" id="feedback" role="status" aria-live="polite">Listo. Esta idea ya no se pierde.</div>
+      </section>
+
+      <section class="section" aria-labelledby="timelineTitle">
+        <div class="section-head">
+          <h2 class="section-title" id="timelineTitle">Ideas por mes</h2>
+          <span class="count-badge" id="monthCount">Junio activo</span>
+        </div>
+
+        <div id="monthTimeline">
+          <section class="month-section" data-month="Junio 2026">
+            <h2 class="month-title">Junio 2026</h2>
+            <div class="ideas-list" id="currentMonthList">
+              <article class="idea-card">
+                <div class="idea-emoji" aria-hidden="true">📱</div>
+                <div class="idea-content">
+                  <div class="idea-topline">
+                    <h3 class="idea-title">App para recordar ideas</h3>
+                    <span class="idea-time">Hace 4 min</span>
+                  </div>
+                  <p class="idea-copy">Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.</p>
+                  <div class="idea-meta">
+                    <span class="tag">Junio</span>
+                    <span class="saved">Guardada</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="idea-card">
+                <div class="idea-emoji" aria-hidden="true">🎬</div>
+                <div class="idea-content">
+                  <div class="idea-topline">
+                    <h3 class="idea-title">Reel para diseñadores</h3>
+                    <span class="idea-time">Hoy</span>
+                  </div>
+                  <p class="idea-copy">Un video corto sobre cómo las buenas ideas se pierden cuando no se capturan a tiempo.</p>
+                  <div class="idea-meta">
+                    <span class="tag">Junio</span>
+                    <span class="saved">Guardada</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="idea-card">
+                <div class="idea-emoji" aria-hidden="true">🧭</div>
+                <div class="idea-content">
+                  <div class="idea-topline">
+                    <h3 class="idea-title">Sistema para organizar proyectos</h3>
+                    <span class="idea-time">Ayer</span>
+                  </div>
+                  <p class="idea-copy">Un método simple para transformar ideas sueltas en próximos pasos concretos.</p>
+                  <div class="idea-meta">
+                    <span class="tag">Junio</span>
+                    <span class="saved">Guardada</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="month-section" data-month="Mayo 2026">
+            <h2 class="month-title">Mayo 2026</h2>
+            <div class="ideas-list">
+              <article class="idea-card">
+                <div class="idea-emoji" aria-hidden="true">🧩</div>
+                <div class="idea-content">
+                  <div class="idea-topline">
+                    <h3 class="idea-title">Producto digital para freelancers</h3>
+                    <span class="idea-time">Mayo</span>
+                  </div>
+                  <p class="idea-copy">Una plantilla para convertir servicios repetidos en productos digitales simples.</p>
+                  <div class="idea-meta">
+                    <span class="tag">Mayo</span>
+                    <span class="saved">Guardada</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="idea-card">
+                <div class="idea-emoji" aria-hidden="true">💬</div>
+                <div class="idea-content">
+                  <div class="idea-topline">
+                    <h3 class="idea-title">Automatización de mensajes</h3>
+                    <span class="idea-time">Mayo</span>
+                  </div>
+                  <p class="idea-copy">Un flujo amable para responder consultas frecuentes sin perder el tono humano.</p>
+                  <div class="idea-meta">
+                    <span class="tag">Mayo</span>
+                    <span class="saved">Guardada</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="reminder-card">
+          <div class="reminder-icon" aria-hidden="true">⏰</div>
+          <p>Más adelante Ideapp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+        </div>
+      </section>
     </section>
 
-    <section class="section" aria-labelledby="recentTitle">
+    <section class="screen" id="ideasScreen" data-title="Tus ideas" data-subtitle="Volvé a encontrarlas sin esfuerzo." data-eyebrow="Organizadas por hábito">
       <div class="section-head">
-        <h2 class="section-title" id="recentTitle">Ideas recientes</h2>
-        <span class="count-badge" id="todayCount">3 hoy</span>
+        <h2 class="section-title">Revisar por hábito</h2>
+        <span class="section-note">Toque rápido</span>
       </div>
-      <div class="ideas-list" id="ideasList">
-        <article class="idea-card">
-          <div class="idea-emoji" aria-hidden="true">📱</div>
-          <div class="idea-content">
-            <div class="idea-topline">
-              <h3 class="idea-title">App para recordar ideas</h3>
-              <span class="idea-time">Hace 4 min</span>
-            </div>
-            <p class="idea-copy">Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.</p>
-            <div class="idea-meta">
-              <span class="tag">App</span>
-              <span class="saved">Guardada</span>
-            </div>
-          </div>
-        </article>
 
-        <article class="idea-card">
-          <div class="idea-emoji" aria-hidden="true">🎬</div>
-          <div class="idea-content">
-            <div class="idea-topline">
-              <h3 class="idea-title">Contenido para diseñadores</h3>
-              <span class="idea-time">Hoy</span>
-            </div>
-            <p class="idea-copy">Reel sobre cómo los diseñadores pierden buenas ideas por no anotarlas.</p>
-            <div class="idea-meta">
-              <span class="tag">Contenido</span>
-              <span class="saved">Guardada</span>
-            </div>
-          </div>
-        </article>
+      <div class="habit-grid">
+        <button class="habit-card" type="button" data-panel-title="Recientes" data-panel-copy="Tus últimas ideas guardadas aparecen acá para que las retomes cuando todavía están frescas.">
+          <span class="habit-icon" aria-hidden="true">🕘</span>
+          <span>
+            <span class="habit-title">Recientes</span>
+            <span class="habit-copy">Lo último que capturaste.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
 
-        <article class="idea-card">
-          <div class="idea-emoji" aria-hidden="true">🧩</div>
-          <div class="idea-content">
-            <div class="idea-topline">
-              <h3 class="idea-title">Producto digital</h3>
-              <span class="idea-time">Ayer</span>
-            </div>
-            <p class="idea-copy">Plantilla para convertir ideas sueltas en proyectos simples.</p>
-            <div class="idea-meta">
-              <span class="tag">Negocio</span>
-              <span class="saved">Guardada</span>
-            </div>
-          </div>
-        </article>
+        <button class="habit-card" type="button" data-panel-title="Esta semana" data-panel-copy="Un repaso liviano para detectar ideas que todavía tienen energía esta semana.">
+          <span class="habit-icon" aria-hidden="true">📆</span>
+          <span>
+            <span class="habit-title">Esta semana</span>
+            <span class="habit-copy">Ideas con ritmo reciente.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="habit-card" type="button" data-panel-title="Este mes" data-panel-copy="Una mirada mensual para ver qué ideas se repiten, crecen o piden convertirse en proyecto.">
+          <span class="habit-icon" aria-hidden="true">🌿</span>
+          <span>
+            <span class="habit-title">Este mes</span>
+            <span class="habit-copy">Tu mapa de junio.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="habit-card" type="button" data-panel-title="Favoritas" data-panel-copy="Ideas marcadas como especiales para volver sin tener que buscarlas.">
+          <span class="habit-icon" aria-hidden="true">⭐</span>
+          <span>
+            <span class="habit-title">Favoritas</span>
+            <span class="habit-copy">Las que querés cuidar.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="habit-card" type="button" data-panel-title="Archivadas" data-panel-copy="Ideas que descansan, pero siguen guardadas para cuando vuelvan a servir.">
+          <span class="habit-icon" aria-hidden="true">📦</span>
+          <span>
+            <span class="habit-title">Archivadas</span>
+            <span class="habit-copy">Guardadas sin ruido.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="habit-card" type="button" data-panel-title="Por revisar" data-panel-copy="Un espacio para ideas que Ideapp puede recordarte más adelante, sin presión.">
+          <span class="habit-icon" aria-hidden="true">👀</span>
+          <span>
+            <span class="habit-title">Por revisar</span>
+            <span class="habit-copy">Pendientes suaves.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+      </div>
+
+      <div class="fake-panel" id="ideasPanel">
+        <h3 id="ideasPanelTitle">Recientes</h3>
+        <p id="ideasPanelCopy">Tus últimas ideas guardadas aparecen acá para que las retomes cuando todavía están frescas.</p>
       </div>
     </section>
 
-    <section class="section" aria-labelledby="categoriesTitle">
+    <section class="screen" id="settingsScreen" data-title="Ajustes" data-subtitle="Todo tranquilo y en orden." data-eyebrow="Ideapp lista para crecer">
       <div class="section-head">
-        <h2 class="section-title" id="categoriesTitle">Categorías</h2>
+        <h2 class="section-title">Preferencias</h2>
+        <span class="section-note">Visual</span>
       </div>
-      <div class="chips" aria-label="Categorías de ideas">
-        <button class="chip active" type="button">Apps</button>
-        <button class="chip" type="button">Contenido</button>
-        <button class="chip" type="button">Negocio</button>
-        <button class="chip" type="button">Diseño</button>
-        <button class="chip" type="button">Random</button>
-      </div>
-    </section>
 
-    <section class="section">
-      <div class="reminder-card">
-        <div class="reminder-icon" aria-hidden="true">⏰</div>
-        <p>Más adelante Ideapp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+      <div class="settings-list">
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">🙂</span>
+          <span>
+            <span class="setting-title">Perfil</span>
+            <span class="setting-copy">Nombre, saludo y datos básicos.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">🔔</span>
+          <span>
+            <span class="setting-title">Notificaciones</span>
+            <span class="setting-copy">Avisos suaves para volver a Ideapp.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">⏰</span>
+          <span>
+            <span class="setting-title">Recordatorios de ideas</span>
+            <span class="setting-copy">Recuperar ideas cuando puedan servir.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">🎨</span>
+          <span>
+            <span class="setting-title">Apariencia</span>
+            <span class="setting-copy">Color, estilo y sensación visual.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">📤</span>
+          <span>
+            <span class="setting-title">Exportar ideas</span>
+            <span class="setting-copy">Llevar tus ideas a otro lugar.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">🔒</span>
+          <span>
+            <span class="setting-title">Privacidad</span>
+            <span class="setting-copy">Control y tranquilidad sobre tus datos.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row" type="button">
+          <span class="setting-icon" aria-hidden="true">❔</span>
+          <span>
+            <span class="setting-title">Ayuda</span>
+            <span class="setting-copy">Preguntas, guía y soporte.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
+
+        <button class="setting-row danger" type="button">
+          <span class="setting-icon" aria-hidden="true">🚪</span>
+          <span>
+            <span class="setting-title">Cerrar sesión</span>
+            <span class="setting-copy">Solo visual por ahora.</span>
+          </span>
+          <span class="chevron" aria-hidden="true">›</span>
+        </button>
       </div>
     </section>
   </main>
@@ -701,15 +1228,15 @@
   <button class="fab" id="fab" type="button" aria-label="Capturar nueva idea">+</button>
 
   <nav class="bottom-nav" aria-label="Navegación principal">
-    <button class="tab active" type="button" data-tab="Inicio">
+    <button class="tab active" type="button" data-screen="homeScreen">
       <span class="tab-icon" aria-hidden="true">🏠</span>
       <span>Inicio</span>
     </button>
-    <button class="tab" type="button" data-tab="Ideas">
+    <button class="tab" type="button" data-screen="ideasScreen">
       <span class="tab-icon" aria-hidden="true">💭</span>
       <span>Ideas</span>
     </button>
-    <button class="tab" type="button" data-tab="Ajustes">
+    <button class="tab" type="button" data-screen="settingsScreen">
       <span class="tab-icon" aria-hidden="true">⚙️</span>
       <span>Ajustes</span>
     </button>
@@ -717,33 +1244,149 @@
 
   <script>
     const input = document.querySelector("#ideaInput");
+    const organizeButton = document.querySelector("#organizeIdea");
     const saveButton = document.querySelector("#saveIdea");
+    const editButton = document.querySelector("#editIdea");
     const captureCard = document.querySelector("#captureCard");
+    const processing = document.querySelector("#processing");
+    const previewCard = document.querySelector("#previewCard");
+    const previewTitle = document.querySelector("#previewTitle");
+    const previewText = document.querySelector("#previewText");
+    const previewSummary = document.querySelector("#previewSummary");
     const feedback = document.querySelector("#feedback");
-    const ideasList = document.querySelector("#ideasList");
+    const currentMonthList = document.querySelector("#currentMonthList");
     const totalIdeas = document.querySelector("#totalIdeas");
-    const todayCount = document.querySelector("#todayCount");
+    const todaySaved = document.querySelector("#todaySaved");
     const fab = document.querySelector("#fab");
     const tabs = document.querySelectorAll(".tab");
-    const chips = document.querySelectorAll(".chip");
+    const screens = document.querySelectorAll(".screen");
+    const screenHeading = document.querySelector("#screenHeading");
+    const screenSubtitle = document.querySelector("#screenSubtitle");
+    const habitCards = document.querySelectorAll(".habit-card");
+    const ideasPanel = document.querySelector("#ideasPanel");
+    const ideasPanelTitle = document.querySelector("#ideasPanelTitle");
+    const ideasPanelCopy = document.querySelector("#ideasPanelCopy");
 
     let total = 12;
     let today = 3;
     let feedbackTimer;
+    let processingTimer;
+    let preparedIdea = null;
+
+    function cleanText(text) {
+      return text.trim().replace(/\s+/g, " ");
+    }
 
     function titleFromText(text) {
-      const clean = text.trim().replace(/\s+/g, " ");
-      if (clean.length <= 34) return clean;
-      return clean.slice(0, 31).trim() + "...";
+      const lower = cleanText(text).toLowerCase();
+
+      if (lower.includes("recuerd") || lower.includes("ideas")) {
+        return "App para recordar ideas";
+      }
+
+      if (lower.includes("reel") || lower.includes("contenido")) {
+        return "Contenido para capturar ideas";
+      }
+
+      if (lower.includes("proyecto")) {
+        return "Sistema para organizar proyectos";
+      }
+
+      const words = cleanText(text).split(" ").slice(0, 5).join(" ");
+      return words.length > 0 ? words.charAt(0).toUpperCase() + words.slice(1) : "Idea rápida";
     }
 
-    function ideaCopyFromText(text) {
-      const clean = text.trim().replace(/\s+/g, " ");
-      if (clean.length <= 86) return "Idea rápida guardada para revisar después.";
-      return clean.slice(0, 104).trim() + "...";
+    function correctedTextFromText(text) {
+      const lower = cleanText(text).toLowerCase();
+
+      if (lower.includes("recuerd") || lower.includes("cosas q") || lower.includes("ideas")) {
+        return "Una aplicación que me ayuda a recordar ideas que se me ocurren durante el día.";
+      }
+
+      if (lower.includes("reel") || lower.includes("contenido")) {
+        return "Una pieza de contenido simple para mostrar por qué conviene anotar las ideas apenas aparecen.";
+      }
+
+      return cleanText(text).charAt(0).toUpperCase() + cleanText(text).slice(1);
     }
 
-    function createIdeaCard(text) {
+    function summaryFromText(text) {
+      const lower = cleanText(text).toLowerCase();
+
+      if (lower.includes("recuerd") || lower.includes("ideas")) {
+        return "Una herramienta simple para capturar ideas rápidas, organizarlas y recuperarlas más adelante.";
+      }
+
+      if (lower.includes("proyecto")) {
+        return "Un sistema liviano para transformar ideas sueltas en próximos pasos fáciles de revisar.";
+      }
+
+      return "Una idea guardada con una forma más clara para poder retomarla después sin esfuerzo.";
+    }
+
+    function currentMonthName() {
+      const month = new Intl.DateTimeFormat("es", { month: "long", year: "numeric" }).format(new Date());
+      return month.charAt(0).toUpperCase() + month.slice(1);
+    }
+
+    function showFeedback(message) {
+      feedback.textContent = message;
+      feedback.classList.add("show");
+      window.clearTimeout(feedbackTimer);
+      feedbackTimer = window.setTimeout(() => {
+        feedback.classList.remove("show");
+      }, 2400);
+    }
+
+    function resetPreview() {
+      preparedIdea = null;
+      previewCard.classList.remove("show");
+      processing.classList.remove("show");
+      organizeButton.style.display = "block";
+    }
+
+    function shakeCapture(message) {
+      captureCard.classList.remove("shake");
+      void captureCard.offsetWidth;
+      captureCard.classList.add("shake");
+      showFeedback(message);
+      input.focus();
+    }
+
+    function organizeIdea() {
+      const value = cleanText(input.value);
+
+      organizeButton.classList.add("pressed");
+      window.setTimeout(() => organizeButton.classList.remove("pressed"), 130);
+
+      if (!value) {
+        shakeCapture("Escribí una idea primero.");
+        return;
+      }
+
+      previewCard.classList.remove("show");
+      feedback.classList.remove("show");
+      processing.classList.add("show");
+      organizeButton.style.display = "none";
+      window.clearTimeout(processingTimer);
+
+      processingTimer = window.setTimeout(() => {
+        preparedIdea = {
+          original: value,
+          title: titleFromText(value),
+          text: correctedTextFromText(value),
+          summary: summaryFromText(value)
+        };
+
+        previewTitle.textContent = preparedIdea.title;
+        previewText.textContent = preparedIdea.text;
+        previewSummary.textContent = preparedIdea.summary;
+        processing.classList.remove("show");
+        previewCard.classList.add("show");
+      }, 850);
+    }
+
+    function createIdeaCard(idea) {
       const article = document.createElement("article");
       article.className = "idea-card";
       article.innerHTML = `
@@ -755,73 +1398,99 @@
           </div>
           <p class="idea-copy"></p>
           <div class="idea-meta">
-            <span class="tag">Random</span>
+            <span class="tag"></span>
             <span class="saved">Guardada</span>
           </div>
         </div>
       `;
-      article.querySelector(".idea-title").textContent = titleFromText(text);
-      article.querySelector(".idea-copy").textContent = ideaCopyFromText(text);
+      article.querySelector(".idea-title").textContent = idea.title;
+      article.querySelector(".idea-copy").textContent = idea.summary;
+      article.querySelector(".tag").textContent = currentMonthName().split(" ")[0];
       return article;
     }
 
-    function showFeedback(message) {
-      feedback.textContent = message;
-      feedback.classList.add("show");
-      window.clearTimeout(feedbackTimer);
-      feedbackTimer = window.setTimeout(() => {
-        feedback.classList.remove("show");
-      }, 2200);
-    }
-
     function saveIdea() {
-      const value = input.value.trim();
+      if (!preparedIdea) {
+        organizeIdea();
+        return;
+      }
 
       saveButton.classList.add("pressed");
       window.setTimeout(() => saveButton.classList.remove("pressed"), 130);
 
-      if (!value) {
-        captureCard.classList.remove("shake");
-        void captureCard.offsetWidth;
-        captureCard.classList.add("shake");
-        showFeedback("Escribí una idea primero.");
-        input.focus();
-        return;
-      }
-
-      ideasList.prepend(createIdeaCard(value));
+      currentMonthList.prepend(createIdeaCard(preparedIdea));
       input.value = "";
       total += 1;
       today += 1;
       totalIdeas.textContent = total;
-      todayCount.textContent = `${today} hoy`;
-      showFeedback("Listo, esta idea ya no se pierde.");
+      todaySaved.textContent = `${today} ideas guardadas hoy`;
+      resetPreview();
+      showFeedback("Listo. Esta idea ya no se pierde.");
     }
 
+    function switchScreen(screenId) {
+      const nextScreen = document.querySelector(`#${screenId}`);
+
+      screens.forEach((screen) => {
+        screen.classList.toggle("active", screen === nextScreen);
+      });
+
+      tabs.forEach((tab) => {
+        tab.classList.toggle("active", tab.dataset.screen === screenId);
+      });
+
+      screenHeading.textContent = nextScreen.dataset.title;
+      screenSubtitle.textContent = nextScreen.dataset.subtitle;
+      todaySaved.textContent = nextScreen.dataset.eyebrow;
+      fab.classList.toggle("hidden", screenId !== "homeScreen");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    organizeButton.addEventListener("click", organizeIdea);
     saveButton.addEventListener("click", saveIdea);
+
+    editButton.addEventListener("click", () => {
+      previewCard.classList.remove("show");
+      organizeButton.style.display = "block";
+      input.focus();
+    });
+
+    input.addEventListener("input", () => {
+      if (preparedIdea || previewCard.classList.contains("show")) {
+        resetPreview();
+      }
+    });
 
     input.addEventListener("keydown", (event) => {
       if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-        saveIdea();
+        if (preparedIdea) {
+          saveIdea();
+        } else {
+          organizeIdea();
+        }
       }
     });
 
     fab.addEventListener("click", () => {
-      input.focus();
-      captureCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      switchScreen("homeScreen");
+      window.setTimeout(() => {
+        input.focus();
+        captureCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 180);
     });
 
     tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
-        tabs.forEach((item) => item.classList.remove("active"));
-        tab.classList.add("active");
+        switchScreen(tab.dataset.screen);
       });
     });
 
-    chips.forEach((chip) => {
-      chip.addEventListener("click", () => {
-        chips.forEach((item) => item.classList.remove("active"));
-        chip.classList.add("active");
+    habitCards.forEach((card) => {
+      card.addEventListener("click", () => {
+        ideasPanelTitle.textContent = card.dataset.panelTitle;
+        ideasPanelCopy.textContent = card.dataset.panelCopy;
+        ideasPanel.classList.add("show");
+        ideasPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     });
   </script>
