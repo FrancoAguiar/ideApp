@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f8f5ec" />
+  <title>Ideapp</title>
+  <style>
+    :root {
+      --bg: #f8f5ec;
+      --card: #ffffff;
+      --ink: #20251f;
+      --muted: #6e756a;
+      --soft: #eef3e8;
+      --green: #58cc02;
+      --green-dark: #45a600;
+      --green-soft: #ddf8cf;
+      --yellow: #ffe071;
+      --orange: #ffb84d;
+      --line: #e9eadf;
+      --shadow: 0 14px 34px rgba(38, 50, 29, 0.09);
+      --button-shadow: 0 6px 0 #45a600;
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--bg);
+    }
+
+    body {
+      min-height: 100%;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 2%, rgba(255, 224, 113, 0.35), transparent 26%),
+        linear-gradient(180deg, #fbf8ef 0%, var(--bg) 46%, #f4f7ef 100%);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-shell {
+      width: min(100%, 480px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: max(18px, env(safe-area-inset-top)) 18px calc(102px + env(safe-area-inset-bottom));
+      position: relative;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 6px 2px 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(233, 234, 223, 0.8);
+      color: #4d5b44;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 8px 20px rgba(52, 69, 40, 0.06);
+      white-space: nowrap;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      margin-top: 12px;
+      font-size: 34px;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 17px;
+      font-weight: 650;
+    }
+
+    .avatar {
+      width: 54px;
+      height: 54px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 19px;
+      background: var(--green);
+      color: white;
+      font-size: 26px;
+      box-shadow: 0 7px 0 var(--green-dark), 0 16px 28px rgba(88, 204, 2, 0.25);
+      transform: rotate(2deg);
+    }
+
+    .progress-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat-pill {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(233, 234, 223, 0.86);
+      box-shadow: 0 10px 24px rgba(38, 50, 29, 0.06);
+    }
+
+    .stat-icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: var(--soft);
+      font-size: 19px;
+    }
+
+    .stat-text {
+      font-size: 13px;
+      line-height: 1.18;
+      color: #4f5849;
+      font-weight: 850;
+    }
+
+    .capture-card {
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+      border-radius: var(--radius-xl);
+      background: var(--card);
+      border: 1px solid rgba(233, 234, 223, 0.88);
+      box-shadow: var(--shadow);
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .capture-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 8px;
+      background: linear-gradient(90deg, var(--green), #91e85d, var(--yellow));
+    }
+
+    .capture-card h2 {
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: 0;
+      margin-bottom: 14px;
+    }
+
+    .idea-input-wrap {
+      position: relative;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 132px;
+      resize: none;
+      border: 2px solid #edf0e7;
+      outline: 0;
+      border-radius: 23px;
+      padding: 18px 18px 50px;
+      color: var(--ink);
+      background: #fbfcf7;
+      font-size: 17px;
+      line-height: 1.42;
+      font-weight: 650;
+      transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+    }
+
+    textarea::placeholder {
+      color: #9ca693;
+    }
+
+    textarea:focus {
+      border-color: #94df62;
+      background: #ffffff;
+    }
+
+    .spark {
+      position: absolute;
+      right: 16px;
+      bottom: 15px;
+      display: inline-grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 14px;
+      background: #fff3be;
+      box-shadow: inset 0 -3px 0 rgba(225, 184, 61, 0.38);
+      font-size: 18px;
+    }
+
+    .primary-button {
+      width: 100%;
+      min-height: 58px;
+      margin-top: 15px;
+      border-radius: 19px;
+      background: var(--green);
+      color: white;
+      font-weight: 950;
+      font-size: 17px;
+      box-shadow: var(--button-shadow);
+      transform: translateY(0);
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 160ms ease;
+    }
+
+    .primary-button:active,
+    .primary-button.pressed {
+      transform: translateY(5px);
+      box-shadow: 0 1px 0 var(--green-dark);
+      filter: saturate(1.08);
+    }
+
+    .feedback {
+      min-height: 28px;
+      margin-top: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--green-dark);
+      font-size: 14px;
+      font-weight: 900;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .feedback.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .shake {
+      animation: shake 360ms ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(7px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(4px); }
+    }
+
+    .section {
+      margin-top: 26px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 13px;
+      padding: 0 2px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .count-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 32px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: #317a02;
+      font-size: 13px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .ideas-list {
+      display: grid;
+      gap: 13px;
+    }
+
+    .idea-card {
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      gap: 13px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: var(--card);
+      border: 1px solid rgba(233, 234, 223, 0.9);
+      box-shadow: 0 11px 26px rgba(38, 50, 29, 0.07);
+      animation: cardIn 380ms cubic-bezier(.2, .95, .25, 1.12);
+    }
+
+    @keyframes cardIn {
+      from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.97);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .idea-emoji {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: #f1f8eb;
+      box-shadow: inset 0 -4px 0 rgba(88, 204, 2, 0.13);
+      font-size: 23px;
+    }
+
+    .idea-content {
+      min-width: 0;
+    }
+
+    .idea-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .idea-title {
+      font-size: 16px;
+      line-height: 1.18;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .idea-time {
+      flex: 0 0 auto;
+      color: #8b9384;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+
+    .idea-copy {
+      color: #656e5d;
+      font-size: 14px;
+      line-height: 1.35;
+      font-weight: 620;
+      margin-bottom: 11px;
+    }
+
+    .idea-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tag,
+    .saved {
+      display: inline-flex;
+      align-items: center;
+      min-height: 27px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 950;
+      line-height: 1;
+    }
+
+    .tag {
+      background: #f5f2e8;
+      color: #6a6049;
+    }
+
+    .saved {
+      background: var(--green-soft);
+      color: #338203;
+    }
+
+    .chips {
+      display: flex;
+      gap: 9px;
+      overflow-x: auto;
+      padding: 1px 2px 5px;
+      scrollbar-width: none;
+    }
+
+    .chips::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      flex: 0 0 auto;
+      min-height: 42px;
+      padding: 0 15px;
+      border-radius: 999px;
+      background: #ffffff;
+      border: 1px solid rgba(233, 234, 223, 0.96);
+      color: #535d4c;
+      font-size: 14px;
+      font-weight: 950;
+      box-shadow: 0 7px 17px rgba(38, 50, 29, 0.06);
+      transition: transform 130ms ease, box-shadow 130ms ease, background 130ms ease;
+    }
+
+    .chip:active,
+    .chip.active {
+      transform: translateY(3px);
+      background: var(--green-soft);
+      color: #317a02;
+      box-shadow: 0 2px 0 rgba(49, 122, 2, 0.2);
+    }
+
+    .reminder-card {
+      display: grid;
+      grid-template-columns: 48px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 17px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, #fffef7 0%, #eef9e8 100%);
+      border: 1px solid rgba(220, 235, 209, 0.95);
+      box-shadow: 0 10px 24px rgba(38, 50, 29, 0.06);
+    }
+
+    .reminder-icon {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      background: white;
+      font-size: 24px;
+      box-shadow: inset 0 -4px 0 rgba(255, 184, 77, 0.25);
+    }
+
+    .reminder-card p {
+      color: #4e5b46;
+      font-size: 15px;
+      line-height: 1.36;
+      font-weight: 800;
+    }
+
+    .fab {
+      position: fixed;
+      right: max(18px, calc((100vw - 480px) / 2 + 18px));
+      bottom: calc(86px + env(safe-area-inset-bottom));
+      width: 62px;
+      height: 62px;
+      z-index: 6;
+      border-radius: 23px;
+      background: var(--green);
+      color: white;
+      font-size: 36px;
+      font-weight: 850;
+      line-height: 1;
+      box-shadow: 0 7px 0 var(--green-dark), 0 16px 28px rgba(88, 204, 2, 0.28);
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .fab:active {
+      transform: translateY(5px);
+      box-shadow: 0 2px 0 var(--green-dark), 0 10px 20px rgba(88, 204, 2, 0.22);
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      z-index: 5;
+      width: min(100%, 480px);
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(255, 255, 255, 0.88);
+      border-top: 1px solid rgba(224, 229, 215, 0.9);
+      box-shadow: 0 -14px 34px rgba(38, 50, 29, 0.08);
+      backdrop-filter: blur(18px);
+    }
+
+    .tab {
+      min-height: 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-radius: 18px;
+      background: transparent;
+      color: #8a9383;
+      font-size: 12px;
+      font-weight: 950;
+      transition: background 160ms ease, color 160ms ease, transform 120ms ease;
+    }
+
+    .tab-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .tab:active {
+      transform: scale(0.96);
+    }
+
+    .tab.active {
+      background: var(--green-soft);
+      color: #2f7d02;
+    }
+
+    @media (min-width: 700px) {
+      body {
+        display: grid;
+        place-items: start center;
+      }
+
+      .app-shell {
+        margin-top: 22px;
+        margin-bottom: 22px;
+        min-height: calc(100vh - 44px);
+        border-radius: 38px;
+        box-shadow: 0 24px 70px rgba(38, 50, 29, 0.11);
+      }
+
+      .bottom-nav {
+        border-radius: 28px 28px 0 0;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .app-shell {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      h1 {
+        font-size: 31px;
+      }
+
+      .progress-row {
+        grid-template-columns: 1fr;
+      }
+
+      .idea-card {
+        grid-template-columns: 42px 1fr;
+      }
+
+      .idea-emoji {
+        width: 42px;
+        height: 42px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell" aria-label="Ideapp">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">3 ideas guardadas hoy</div>
+        <h1>Hola Fran</h1>
+        <p class="subtitle">No pierdas ninguna idea.</p>
+      </div>
+      <div class="avatar" aria-hidden="true">💡</div>
+    </header>
+
+    <section class="progress-row" aria-label="Progreso">
+      <div class="stat-pill">
+        <span class="stat-icon" aria-hidden="true">🔥</span>
+        <span class="stat-text">3 días capturando ideas</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-icon" aria-hidden="true">💡</span>
+        <span class="stat-text"><span id="totalIdeas">12</span> ideas guardadas</span>
+      </div>
+    </section>
+
+    <section class="capture-card" id="captureCard">
+      <h2>¿Qué idea apareció?</h2>
+      <div class="idea-input-wrap">
+        <textarea id="ideaInput" placeholder="Escribila antes de que desaparezca..." aria-label="Escribir idea"></textarea>
+        <span class="spark" aria-hidden="true">✨</span>
+      </div>
+      <button class="primary-button" id="saveIdea" type="button">Guardar idea</button>
+      <div class="feedback" id="feedback" role="status" aria-live="polite">Listo, esta idea ya no se pierde.</div>
+    </section>
+
+    <section class="section" aria-labelledby="recentTitle">
+      <div class="section-head">
+        <h2 class="section-title" id="recentTitle">Ideas recientes</h2>
+        <span class="count-badge" id="todayCount">3 hoy</span>
+      </div>
+      <div class="ideas-list" id="ideasList">
+        <article class="idea-card">
+          <div class="idea-emoji" aria-hidden="true">📱</div>
+          <div class="idea-content">
+            <div class="idea-topline">
+              <h3 class="idea-title">App para recordar ideas</h3>
+              <span class="idea-time">Hace 4 min</span>
+            </div>
+            <p class="idea-copy">Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.</p>
+            <div class="idea-meta">
+              <span class="tag">App</span>
+              <span class="saved">Guardada</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="idea-card">
+          <div class="idea-emoji" aria-hidden="true">🎬</div>
+          <div class="idea-content">
+            <div class="idea-topline">
+              <h3 class="idea-title">Contenido para diseñadores</h3>
+              <span class="idea-time">Hoy</span>
+            </div>
+            <p class="idea-copy">Reel sobre cómo los diseñadores pierden buenas ideas por no anotarlas.</p>
+            <div class="idea-meta">
+              <span class="tag">Contenido</span>
+              <span class="saved">Guardada</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="idea-card">
+          <div class="idea-emoji" aria-hidden="true">🧩</div>
+          <div class="idea-content">
+            <div class="idea-topline">
+              <h3 class="idea-title">Producto digital</h3>
+              <span class="idea-time">Ayer</span>
+            </div>
+            <p class="idea-copy">Plantilla para convertir ideas sueltas en proyectos simples.</p>
+            <div class="idea-meta">
+              <span class="tag">Negocio</span>
+              <span class="saved">Guardada</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="categoriesTitle">
+      <div class="section-head">
+        <h2 class="section-title" id="categoriesTitle">Categorías</h2>
+      </div>
+      <div class="chips" aria-label="Categorías de ideas">
+        <button class="chip active" type="button">Apps</button>
+        <button class="chip" type="button">Contenido</button>
+        <button class="chip" type="button">Negocio</button>
+        <button class="chip" type="button">Diseño</button>
+        <button class="chip" type="button">Random</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="reminder-card">
+        <div class="reminder-icon" aria-hidden="true">⏰</div>
+        <p>Más adelante Ideapp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fab" type="button" aria-label="Capturar nueva idea">+</button>
+
+  <nav class="bottom-nav" aria-label="Navegación principal">
+    <button class="tab active" type="button" data-tab="Inicio">
+      <span class="tab-icon" aria-hidden="true">🏠</span>
+      <span>Inicio</span>
+    </button>
+    <button class="tab" type="button" data-tab="Ideas">
+      <span class="tab-icon" aria-hidden="true">💭</span>
+      <span>Ideas</span>
+    </button>
+    <button class="tab" type="button" data-tab="Ajustes">
+      <span class="tab-icon" aria-hidden="true">⚙️</span>
+      <span>Ajustes</span>
+    </button>
+  </nav>
+
+  <script>
+    const input = document.querySelector("#ideaInput");
+    const saveButton = document.querySelector("#saveIdea");
+    const captureCard = document.querySelector("#captureCard");
+    const feedback = document.querySelector("#feedback");
+    const ideasList = document.querySelector("#ideasList");
+    const totalIdeas = document.querySelector("#totalIdeas");
+    const todayCount = document.querySelector("#todayCount");
+    const fab = document.querySelector("#fab");
+    const tabs = document.querySelectorAll(".tab");
+    const chips = document.querySelectorAll(".chip");
+
+    let total = 12;
+    let today = 3;
+    let feedbackTimer;
+
+    function titleFromText(text) {
+      const clean = text.trim().replace(/\s+/g, " ");
+      if (clean.length <= 34) return clean;
+      return clean.slice(0, 31).trim() + "...";
+    }
+
+    function ideaCopyFromText(text) {
+      const clean = text.trim().replace(/\s+/g, " ");
+      if (clean.length <= 86) return "Idea rápida guardada para revisar después.";
+      return clean.slice(0, 104).trim() + "...";
+    }
+
+    function createIdeaCard(text) {
+      const article = document.createElement("article");
+      article.className = "idea-card";
+      article.innerHTML = `
+        <div class="idea-emoji" aria-hidden="true">🌱</div>
+        <div class="idea-content">
+          <div class="idea-topline">
+            <h3 class="idea-title"></h3>
+            <span class="idea-time">Ahora</span>
+          </div>
+          <p class="idea-copy"></p>
+          <div class="idea-meta">
+            <span class="tag">Random</span>
+            <span class="saved">Guardada</span>
+          </div>
+        </div>
+      `;
+      article.querySelector(".idea-title").textContent = titleFromText(text);
+      article.querySelector(".idea-copy").textContent = ideaCopyFromText(text);
+      return article;
+    }
+
+    function showFeedback(message) {
+      feedback.textContent = message;
+      feedback.classList.add("show");
+      window.clearTimeout(feedbackTimer);
+      feedbackTimer = window.setTimeout(() => {
+        feedback.classList.remove("show");
+      }, 2200);
+    }
+
+    function saveIdea() {
+      const value = input.value.trim();
+
+      saveButton.classList.add("pressed");
+      window.setTimeout(() => saveButton.classList.remove("pressed"), 130);
+
+      if (!value) {
+        captureCard.classList.remove("shake");
+        void captureCard.offsetWidth;
+        captureCard.classList.add("shake");
+        showFeedback("Escribí una idea primero.");
+        input.focus();
+        return;
+      }
+
+      ideasList.prepend(createIdeaCard(value));
+      input.value = "";
+      total += 1;
+      today += 1;
+      totalIdeas.textContent = total;
+      todayCount.textContent = `${today} hoy`;
+      showFeedback("Listo, esta idea ya no se pierde.");
+    }
+
+    saveButton.addEventListener("click", saveIdea);
+
+    input.addEventListener("keydown", (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        saveIdea();
+      }
+    });
+
+    fab.addEventListener("click", () => {
+      input.focus();
+      captureCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabs.forEach((item) => item.classList.remove("active"));
+        tab.classList.add("active");
+      });
+    });
+
+    chips.forEach((chip) => {
+      chip.addEventListener("click", () => {
+        chips.forEach((item) => item.classList.remove("active"));
+        chip.classList.add("active");
+      });
+    });
+  </script>
+</body>
+</html>
