@@ -1,0 +1,606 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
+type ScreenId = "homeScreen" | "ideasScreen" | "settingsScreen";
+
+type Idea = {
+  emoji: string;
+  title: string;
+  copy: string;
+  tag: string;
+  time: string;
+};
+
+type PreparedIdea = {
+  original: string;
+  title: string;
+  text: string;
+  summary: string;
+};
+
+const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: string }> = {
+  homeScreen: {
+    title: "👋 Hola Fran",
+    subtitle: "No pierdas ninguna idea.",
+    eyebrow: "3 ideas guardadas hoy",
+  },
+  ideasScreen: {
+    title: "Tus ideas",
+    subtitle: "Volvé a encontrarlas sin esfuerzo.",
+    eyebrow: "Organizadas por hábito",
+  },
+  settingsScreen: {
+    title: "Ajustes",
+    subtitle: "Todo tranquilo y en orden.",
+    eyebrow: "Ideapp lista para crecer",
+  },
+};
+
+const initialJuneIdeas: Idea[] = [
+  {
+    emoji: "📱",
+    title: "App para recordar ideas",
+    copy: "Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.",
+    tag: "Junio",
+    time: "Hace 4 min",
+  },
+  {
+    emoji: "🎬",
+    title: "Reel para diseñadores",
+    copy: "Un video corto sobre cómo las buenas ideas se pierden cuando no se capturan a tiempo.",
+    tag: "Junio",
+    time: "Hoy",
+  },
+  {
+    emoji: "🧭",
+    title: "Sistema para organizar proyectos",
+    copy: "Un método simple para transformar ideas sueltas en próximos pasos concretos.",
+    tag: "Junio",
+    time: "Ayer",
+  },
+];
+
+const mayIdeas: Idea[] = [
+  {
+    emoji: "🧩",
+    title: "Producto digital para freelancers",
+    copy: "Una plantilla para convertir servicios repetidos en productos digitales simples.",
+    tag: "Mayo",
+    time: "Mayo",
+  },
+  {
+    emoji: "💬",
+    title: "Automatización de mensajes",
+    copy: "Un flujo amable para responder consultas frecuentes sin perder el tono humano.",
+    tag: "Mayo",
+    time: "Mayo",
+  },
+];
+
+const habitCards = [
+  {
+    icon: "🕘",
+    title: "Recientes",
+    copy: "Lo último que capturaste.",
+    panelCopy: "Tus últimas ideas guardadas aparecen acá para que las retomes cuando todavía están frescas.",
+  },
+  {
+    icon: "📆",
+    title: "Esta semana",
+    copy: "Ideas con ritmo reciente.",
+    panelCopy: "Un repaso liviano para detectar ideas que todavía tienen energía esta semana.",
+  },
+  {
+    icon: "🌿",
+    title: "Este mes",
+    copy: "Tu mapa de junio.",
+    panelCopy: "Una mirada mensual para ver qué ideas se repiten, crecen o piden convertirse en proyecto.",
+  },
+  {
+    icon: "⭐",
+    title: "Favoritas",
+    copy: "Las que querés cuidar.",
+    panelCopy: "Ideas marcadas como especiales para volver sin tener que buscarlas.",
+  },
+  {
+    icon: "📦",
+    title: "Archivadas",
+    copy: "Guardadas sin ruido.",
+    panelCopy: "Ideas que descansan, pero siguen guardadas para cuando vuelvan a servir.",
+  },
+  {
+    icon: "👀",
+    title: "Por revisar",
+    copy: "Pendientes suaves.",
+    panelCopy: "Un espacio para ideas que Ideapp puede recordarte más adelante, sin presión.",
+  },
+];
+
+const settingsRows = [
+  { icon: "user", title: "Perfil", copy: "Nombre, saludo y datos básicos." },
+  { icon: "bell", title: "Notificaciones", copy: "Avisos suaves para volver a Ideapp." },
+  { icon: "clock", title: "Recordatorios de ideas", copy: "Recuperar ideas cuando puedan servir." },
+  { icon: "palette", title: "Apariencia", copy: "Color, estilo y sensación visual." },
+  { icon: "export", title: "Exportar ideas", copy: "Llevar tus ideas a otro lugar." },
+  { icon: "lock", title: "Privacidad", copy: "Control y tranquilidad sobre tus datos." },
+  { icon: "question", title: "Ayuda", copy: "Preguntas, guía y soporte." },
+  { icon: "logout", title: "Cerrar sesión", copy: "Solo visual por ahora.", danger: true },
+];
+
+function cleanText(text: string) {
+  return text.trim().replace(/\s+/g, " ");
+}
+
+function titleFromText(text: string) {
+  const lower = cleanText(text).toLowerCase();
+
+  if (lower.includes("recuerd") || lower.includes("ideas")) return "App para recordar ideas";
+  if (lower.includes("reel") || lower.includes("contenido")) return "Contenido para capturar ideas";
+  if (lower.includes("proyecto")) return "Sistema para organizar proyectos";
+
+  const words = cleanText(text).split(" ").slice(0, 5).join(" ");
+  return words.length > 0 ? words.charAt(0).toUpperCase() + words.slice(1) : "Idea rápida";
+}
+
+function correctedTextFromText(text: string) {
+  const lower = cleanText(text).toLowerCase();
+
+  if (lower.includes("recuerd") || lower.includes("cosas q") || lower.includes("ideas")) {
+    return "Una aplicación que me ayuda a recordar ideas que se me ocurren durante el día.";
+  }
+
+  if (lower.includes("reel") || lower.includes("contenido")) {
+    return "Una pieza de contenido simple para mostrar por qué conviene anotar las ideas apenas aparecen.";
+  }
+
+  const clean = cleanText(text);
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
+}
+
+function summaryFromText(text: string) {
+  const lower = cleanText(text).toLowerCase();
+
+  if (lower.includes("recuerd") || lower.includes("ideas")) {
+    return "Una herramienta simple para capturar ideas rápidas, organizarlas y recuperarlas más adelante.";
+  }
+
+  if (lower.includes("proyecto")) {
+    return "Un sistema liviano para transformar ideas sueltas en próximos pasos fáciles de revisar.";
+  }
+
+  return "Una idea guardada con una forma más clara para poder retomarla después sin esfuerzo.";
+}
+
+function currentMonthName() {
+  const month = new Intl.DateTimeFormat("es", { month: "long", year: "numeric" }).format(new Date());
+  return month.charAt(0).toUpperCase() + month.slice(1);
+}
+
+function IdeaCard({ idea }: { idea: Idea }) {
+  return (
+    <article className="idea-card">
+      <div className="idea-emoji" aria-hidden="true">{idea.emoji}</div>
+      <div className="idea-content">
+        <div className="idea-topline">
+          <h3 className="idea-title">{idea.title}</h3>
+          <span className="idea-time">{idea.time}</span>
+        </div>
+        <p className="idea-copy">{idea.copy}</p>
+        <div className="idea-meta">
+          <span className="tag">{idea.tag}</span>
+          <span className="saved">Guardada</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3.8 10.7 12 4l8.2 6.7" />
+      <path d="M6.2 9.8v8.1c0 .7.5 1.2 1.2 1.2h9.2c.7 0 1.2-.5 1.2-1.2V9.8" />
+      <path d="M9.7 19.1v-5.2h4.6v5.2" />
+    </svg>
+  );
+}
+
+function LightbulbIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18.5h6" />
+      <path d="M10 21h4" />
+      <path d="M8.5 15.2c-1.7-1.2-2.8-3.1-2.8-5.3A6.3 6.3 0 0 1 12 3.6a6.3 6.3 0 0 1 6.3 6.3c0 2.2-1.1 4.1-2.8 5.3-.6.4-.9 1-.9 1.7v.1H9.4v-.1c0-.7-.3-1.3-.9-1.7Z" />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 8.2a3.8 3.8 0 1 1 0 7.6 3.8 3.8 0 0 1 0-7.6Z" />
+      <path d="M13.4 2.8h-2.8l-.4 2.1a7.4 7.4 0 0 0-1.6.7L6.8 4.4 4.4 6.8l1.2 1.8a7.4 7.4 0 0 0-.7 1.6l-2.1.4v2.8l2.1.4c.2.6.4 1.1.7 1.6l-1.2 1.8 2.4 2.4 1.8-1.2c.5.3 1 .5 1.6.7l.4 2.1h2.8l.4-2.1c.6-.2 1.1-.4 1.6-.7l1.8 1.2 2.4-2.4-1.2-1.8c.3-.5.5-1 .7-1.6l2.1-.4v-2.8l-2.1-.4a7.4 7.4 0 0 0-.7-1.6l1.2-1.8-2.4-2.4-1.8 1.2a7.4 7.4 0 0 0-1.6-.7l-.4-2.1Z" />
+    </svg>
+  );
+}
+
+function SettingIcon({ name }: { name: string }) {
+  const commonProps = {
+    viewBox: "0 0 24 24",
+    width: "21",
+    height: "21",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (name === "user") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z" />
+        <path d="M4.8 20.2c.8-3.2 3.5-5.2 7.2-5.2s6.4 2 7.2 5.2" />
+      </svg>
+    );
+  }
+
+  if (name === "bell") {
+    return (
+      <svg {...commonProps}>
+        <path d="M6.5 10.4a5.5 5.5 0 0 1 11 0v3.2l1.7 2.7H4.8l1.7-2.7v-3.2Z" />
+        <path d="M10 19a2.2 2.2 0 0 0 4 0" />
+      </svg>
+    );
+  }
+
+  if (name === "clock") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+        <path d="M12 7.5v5l3.2 2" />
+      </svg>
+    );
+  }
+
+  if (name === "palette") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 3.5a8.5 8.5 0 0 0 0 17h1.1a1.9 1.9 0 0 0 1.4-3.2l-.2-.2a1.6 1.6 0 0 1 1.2-2.7H17a4.2 4.2 0 0 0 4.2-4.2C21.2 6.5 17.2 3.5 12 3.5Z" />
+        <path d="M7.9 10h.1" />
+        <path d="M10.5 7.3h.1" />
+        <path d="M14.2 7.5h.1" />
+        <path d="M16.7 10.2h.1" />
+      </svg>
+    );
+  }
+
+  if (name === "export") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 15.2V4.2" />
+        <path d="M7.8 8.4 12 4.2l4.2 4.2" />
+        <path d="M5.2 12.8v5.1c0 .9.7 1.6 1.6 1.6h10.4c.9 0 1.6-.7 1.6-1.6v-5.1" />
+      </svg>
+    );
+  }
+
+  if (name === "lock") {
+    return (
+      <svg {...commonProps}>
+        <path d="M7.2 10.4V8.1a4.8 4.8 0 0 1 9.6 0v2.3" />
+        <path d="M6.2 10.4h11.6c.8 0 1.4.6 1.4 1.4v6.4c0 .8-.6 1.4-1.4 1.4H6.2c-.8 0-1.4-.6-1.4-1.4v-6.4c0-.8.6-1.4 1.4-1.4Z" />
+      </svg>
+    );
+  }
+
+  if (name === "question") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+        <path d="M9.7 9.1a2.5 2.5 0 0 1 4.8.8c0 1.8-2.1 2.2-2.1 3.8" />
+        <path d="M12.4 16.8h.1" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...commonProps}>
+      <path d="M9.6 5.2H6.4c-.8 0-1.4.6-1.4 1.4v10.8c0 .8.6 1.4 1.4 1.4h3.2" />
+      <path d="M14.2 15.8 18 12l-3.8-3.8" />
+      <path d="M18 12H9.4" />
+    </svg>
+  );
+}
+
+export default function Home() {
+  const [activeScreen, setActiveScreen] = useState<ScreenId>("homeScreen");
+  const [juneIdeas, setJuneIdeas] = useState<Idea[]>(initialJuneIdeas);
+  const [total, setTotal] = useState(12);
+  const [today, setToday] = useState(3);
+  const [input, setInput] = useState("");
+  const [preparedIdea, setPreparedIdea] = useState<PreparedIdea | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [isFeedbackVisible, setIsFeedbackVisible] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+  const [ideasPanel, setIdeasPanel] = useState<{ title: string; copy: string } | null>(null);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+      if (processingTimer.current) clearTimeout(processingTimer.current);
+    };
+  }, []);
+
+  const meta = screenMeta[activeScreen];
+
+  function showFeedback(message: string) {
+    setFeedback(message);
+    setIsFeedbackVisible(true);
+    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    feedbackTimer.current = setTimeout(() => setIsFeedbackVisible(false), 2400);
+  }
+
+  function resetPreview() {
+    setPreparedIdea(null);
+    setIsProcessing(false);
+  }
+
+  function shakeCapture(message: string) {
+    setIsShaking(false);
+    requestAnimationFrame(() => setIsShaking(true));
+    showFeedback(message);
+  }
+
+  function organizeIdea() {
+    const value = cleanText(input);
+    setIsPressed(true);
+    setTimeout(() => setIsPressed(false), 130);
+
+    if (!value) {
+      shakeCapture("Escribí una idea primero.");
+      return;
+    }
+
+    setPreparedIdea(null);
+    setIsFeedbackVisible(false);
+    setIsProcessing(true);
+    if (processingTimer.current) clearTimeout(processingTimer.current);
+
+    processingTimer.current = setTimeout(() => {
+      setPreparedIdea({
+        original: value,
+        title: titleFromText(value),
+        text: correctedTextFromText(value),
+        summary: summaryFromText(value),
+      });
+      setIsProcessing(false);
+    }, 850);
+  }
+
+  function saveIdea() {
+    if (!preparedIdea) {
+      organizeIdea();
+      return;
+    }
+
+    setIsPressed(true);
+    setTimeout(() => setIsPressed(false), 130);
+    setJuneIdeas((ideas) => [
+      {
+        emoji: "🌱",
+        title: preparedIdea.title,
+        copy: preparedIdea.summary,
+        tag: currentMonthName().split(" ")[0],
+        time: "Ahora",
+      },
+      ...ideas,
+    ]);
+    setInput("");
+    setTotal((value) => value + 1);
+    setToday((value) => value + 1);
+    resetPreview();
+    showFeedback("Listo. Esta idea ya no se pierde.");
+  }
+
+  function switchScreen(screenId: ScreenId) {
+    setActiveScreen(screenId);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function updateInput(value: string) {
+    setInput(value);
+    if (preparedIdea) resetPreview();
+  }
+
+  return (
+    <>
+      <main className="app-shell" aria-label="Ideapp">
+        <header className="topbar">
+          <div>
+            <div className="eyebrow">{activeScreen === "homeScreen" ? `${today} ideas guardadas hoy` : meta.eyebrow}</div>
+            <h1>{meta.title}</h1>
+            <p className="subtitle">{meta.subtitle}</p>
+          </div>
+          <div className="avatar" aria-hidden="true">💡</div>
+        </header>
+
+        <section className="progress-row" aria-label="Progreso">
+          <div className="stat-pill">
+            <span className="stat-icon" aria-hidden="true">🔥</span>
+            <span className="stat-text">3 días capturando ideas</span>
+          </div>
+          <div className="stat-pill">
+            <span className="stat-icon" aria-hidden="true">💡</span>
+            <span className="stat-text"><span>{total}</span> ideas guardadas</span>
+          </div>
+        </section>
+
+        <section className={`screen ${activeScreen === "homeScreen" ? "active" : ""}`}>
+          <section className={`capture-card ${isShaking ? "shake" : ""}`} onAnimationEnd={() => setIsShaking(false)}>
+            <div className="capture-head">
+              <h2>¿Qué idea apareció?</h2>
+              <span className="ai-soon">✨ Próximamente: corrección automática con IA</span>
+            </div>
+
+            <div className="idea-input-wrap">
+              <textarea
+                value={input}
+                onChange={(event) => updateInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                    if (preparedIdea) saveIdea();
+                    else organizeIdea();
+                  }
+                }}
+                placeholder="Escribila aunque esté desordenada..."
+                aria-label="Escribir idea"
+              />
+              <span className="spark" aria-hidden="true">✨</span>
+            </div>
+
+            {!preparedIdea && !isProcessing && (
+              <button className={`primary-button ${isPressed ? "pressed" : ""}`} type="button" onClick={organizeIdea}>
+                Organizar idea
+              </button>
+            )}
+
+            <div className={`processing ${isProcessing ? "show" : ""}`} aria-live="polite">
+              ✨ Organizando idea...
+              <span className="dots" aria-hidden="true"><span /><span /><span /></span>
+            </div>
+
+            <div className={`preview-card ${preparedIdea ? "show" : ""}`} aria-live="polite">
+              {preparedIdea && (
+                <>
+                  <div className="preview-item">
+                    <div className="preview-label">💡 Título</div>
+                    <p className="preview-value">{preparedIdea.title}</p>
+                  </div>
+                  <div className="preview-item">
+                    <div className="preview-label">✍️ Texto corregido</div>
+                    <p className="preview-value">{preparedIdea.text}</p>
+                  </div>
+                  <div className="preview-item">
+                    <div className="preview-label">📝 Resumen</div>
+                    <p className="preview-value">{preparedIdea.summary}</p>
+                  </div>
+                  <button className={`primary-button ${isPressed ? "pressed" : ""}`} type="button" onClick={saveIdea}>
+                    Guardar idea
+                  </button>
+                  <button className="secondary-button" type="button" onClick={() => setPreparedIdea(null)}>
+                    Editar texto
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className={`feedback ${isFeedbackVisible ? "show" : ""}`} role="status" aria-live="polite">
+              {feedback || "Listo. Esta idea ya no se pierde."}
+            </div>
+          </section>
+
+          <section className="section" aria-labelledby="timelineTitle">
+            <div className="section-head">
+              <h2 className="section-title" id="timelineTitle">Ideas por mes</h2>
+              <span className="count-badge">Junio activo</span>
+            </div>
+
+            <div>
+              <section className="month-section" data-month="Junio 2026">
+                <h2 className="month-title">Junio 2026</h2>
+                <div className="ideas-list">
+                  {juneIdeas.map((idea) => <IdeaCard key={`${idea.title}-${idea.time}`} idea={idea} />)}
+                </div>
+              </section>
+
+              <section className="month-section" data-month="Mayo 2026">
+                <h2 className="month-title">Mayo 2026</h2>
+                <div className="ideas-list">
+                  {mayIdeas.map((idea) => <IdeaCard key={idea.title} idea={idea} />)}
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section className="section">
+            <div className="reminder-card">
+              <div className="reminder-icon" aria-hidden="true">⏰</div>
+              <p>Más adelante Ideapp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+            </div>
+          </section>
+        </section>
+
+        <section className={`screen ${activeScreen === "ideasScreen" ? "active" : ""}`}>
+          <div className="section-head">
+            <h2 className="section-title">Revisar por hábito</h2>
+            <span className="section-note">Toque rápido</span>
+          </div>
+
+          <div className="habit-grid">
+            {habitCards.map((card) => (
+              <button
+                className="habit-card"
+                key={card.title}
+                type="button"
+                onClick={() => setIdeasPanel({ title: card.title, copy: card.panelCopy })}
+              >
+                <span className="habit-icon" aria-hidden="true">{card.icon}</span>
+                <span>
+                  <span className="habit-title">{card.title}</span>
+                  <span className="habit-copy">{card.copy}</span>
+                </span>
+                <span className="chevron" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+
+          <div className={`fake-panel ${ideasPanel ? "show" : ""}`}>
+            <h3>{ideasPanel?.title || "Recientes"}</h3>
+            <p>{ideasPanel?.copy || "Tus últimas ideas guardadas aparecen acá para que las retomes cuando todavía están frescas."}</p>
+          </div>
+        </section>
+
+        <section className={`screen ${activeScreen === "settingsScreen" ? "active" : ""}`}>
+          <div className="section-head">
+            <h2 className="section-title">Preferencias</h2>
+            <span className="section-note">Visual</span>
+          </div>
+
+          <div className="settings-list">
+            {settingsRows.map((row) => (
+              <button className={`setting-row ${row.danger ? "danger" : ""}`} key={row.title} type="button">
+                <span className="setting-icon" aria-hidden="true"><SettingIcon name={row.icon} /></span>
+                <span>
+                  <span className="setting-title">{row.title}</span>
+                  <span className="setting-copy">{row.copy}</span>
+                </span>
+                <span className="chevron" aria-hidden="true">›</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
+
+      <nav className="bottom-nav" aria-label="Navegación principal">
+        <button className={`tab ${activeScreen === "homeScreen" ? "active" : ""}`} type="button" onClick={() => switchScreen("homeScreen")}>
+          <span className="tab-icon" aria-hidden="true"><HomeIcon /></span>
+          <span>Inicio</span>
+        </button>
+        <button className={`tab ${activeScreen === "ideasScreen" ? "active" : ""}`} type="button" onClick={() => switchScreen("ideasScreen")}>
+          <span className="tab-icon" aria-hidden="true"><LightbulbIcon /></span>
+          <span>Ideas</span>
+        </button>
+        <button className={`tab ${activeScreen === "settingsScreen" ? "active" : ""}`} type="button" onClick={() => switchScreen("settingsScreen")}>
+          <span className="tab-icon" aria-hidden="true"><GearIcon /></span>
+          <span>Ajustes</span>
+        </button>
+      </nav>
+    </>
+  );
+}
