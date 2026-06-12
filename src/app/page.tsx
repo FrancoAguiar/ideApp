@@ -314,6 +314,25 @@ function SettingIcon({ name }: { name: string }) {
   );
 }
 
+function WelcomeScreen({ onEnter, isExiting }: { onEnter: () => void; isExiting: boolean }) {
+  return (
+    <section className={`welcome-screen ${isExiting ? "exiting" : ""}`} aria-label="Bienvenida a Ideapp">
+      <div className="welcome-hero" aria-hidden="true">
+        <img src="/images/welcome-hero.png" alt="" />
+      </div>
+
+      <div className="welcome-content">
+        <h1>Nunca pierdas una buena idea.</h1>
+        <p>Las mejores ideas aparecen cuando menos lo esperás. Ideapp las guarda antes de que se pierdan.</p>
+        <div className="welcome-actions">
+          <button className="welcome-primary" type="button" onClick={onEnter}>Empezar</button>
+          <button className="welcome-secondary" type="button" onClick={onEnter}>Omitir</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("homeScreen");
   const [juneIdeas, setJuneIdeas] = useState<Idea[]>(initialJuneIdeas);
@@ -327,10 +346,16 @@ export default function Home() {
   const [isPressed, setIsPressed] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [ideasPanel, setIdeasPanel] = useState<{ title: string; copy: string } | null>(null);
+  const [hasCheckedWelcome, setHasCheckedWelcome] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    setShowWelcome(localStorage.getItem("ideapp-welcome-seen") !== "true");
+    setHasCheckedWelcome(true);
+
     return () => {
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       if (processingTimer.current) clearTimeout(processingTimer.current);
@@ -416,6 +441,23 @@ export default function Home() {
   function updateInput(value: string) {
     setInput(value);
     if (preparedIdea) resetPreview();
+  }
+
+  function enterApp() {
+    setIsWelcomeExiting(true);
+    window.setTimeout(() => {
+      localStorage.setItem("ideapp-welcome-seen", "true");
+      setShowWelcome(false);
+      setIsWelcomeExiting(false);
+    }, 320);
+  }
+
+  if (!hasCheckedWelcome) {
+    return null;
+  }
+
+  if (showWelcome) {
+    return <WelcomeScreen onEnter={enterApp} isExiting={isWelcomeExiting} />;
   }
 
   return (
