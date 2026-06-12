@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 type ScreenId = "homeScreen" | "ideasScreen" | "settingsScreen";
 
 type Idea = {
+  id?: string;
   emoji: string;
   title: string;
   copy: string;
@@ -18,6 +19,24 @@ type PreparedIdea = {
   text: string;
   summary: string;
 };
+
+type StoredIdea = {
+  id: string;
+  title: string;
+  originalText: string;
+  correctedText: string;
+  summary: string;
+  month: string;
+  createdAt: string;
+  status: "Guardada";
+};
+
+type MonthGroup = {
+  month: string;
+  ideas: Idea[];
+};
+
+const IDEAS_STORAGE_KEY = "ideapp_ideas";
 
 const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: string }> = {
   homeScreen: {
@@ -76,6 +95,11 @@ const mayIdeas: Idea[] = [
     tag: "Mayo",
     time: "Mayo",
   },
+];
+
+const fakeMonthGroups: MonthGroup[] = [
+  { month: "Junio 2026", ideas: initialJuneIdeas },
+  { month: "Mayo 2026", ideas: mayIdeas },
 ];
 
 const habitCards = [
@@ -175,6 +199,91 @@ function summaryFromText(text: string) {
 function currentMonthName() {
   const month = new Intl.DateTimeFormat("es", { month: "long", year: "numeric" }).format(new Date());
   return month.charAt(0).toUpperCase() + month.slice(1);
+}
+
+function currentMonthTag(month: string) {
+  return month.split(" ")[0] || month;
+}
+
+function formatIdeaTime(createdAt: string) {
+  const created = new Date(createdAt);
+  if (Number.isNaN(created.getTime())) return "Ahora";
+
+  const today = new Date();
+  const isToday = created.toDateString() === today.toDateString();
+  return isToday ? "Ahora" : currentMonthTag(currentMonthName());
+}
+
+function isStoredIdea(value: unknown): value is StoredIdea {
+  if (!value || typeof value !== "object") return false;
+
+  const idea = value as Record<string, unknown>;
+  return (
+    typeof idea.id === "string" &&
+    typeof idea.title === "string" &&
+    typeof idea.originalText === "string" &&
+    typeof idea.correctedText === "string" &&
+    typeof idea.summary === "string" &&
+    typeof idea.month === "string" &&
+    typeof idea.createdAt === "string" &&
+    idea.status === "Guardada"
+  );
+}
+
+function readStoredIdeas() {
+  try {
+    const rawIdeas = window.localStorage.getItem(IDEAS_STORAGE_KEY);
+    if (!rawIdeas) return [];
+
+    const parsedIdeas: unknown = JSON.parse(rawIdeas);
+    if (!Array.isArray(parsedIdeas)) return [];
+
+    return parsedIdeas.filter(isStoredIdea);
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredIdeas(ideas: StoredIdea[]) {
+  try {
+    window.localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(ideas));
+  } catch {
+    // The app should keep working even when storage is unavailable.
+  }
+}
+
+function toDisplayIdea(idea: StoredIdea): Idea {
+  return {
+    id: idea.id,
+    emoji: "🌱",
+    title: idea.title,
+    copy: idea.summary,
+    tag: currentMonthTag(idea.month),
+    time: formatIdeaTime(idea.createdAt),
+  };
+}
+
+function groupStoredIdeasByMonth(ideas: StoredIdea[]): MonthGroup[] {
+  const groups = new Map<string, Idea[]>();
+
+  ideas.forEach((idea) => {
+    const monthIdeas = groups.get(idea.month) || [];
+    monthIdeas.push(toDisplayIdea(idea));
+    groups.set(idea.month, monthIdeas);
+  });
+
+  return Array.from(groups.entries()).map(([month, monthIdeas]) => ({
+    month,
+    ideas: monthIdeas,
+  }));
+}
+
+function createIdeaId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `idea-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function IdeaCard({ idea }: { idea: Idea }) {
@@ -335,7 +444,7 @@ function WelcomeScreen({ onEnter, isExiting }: { onEnter: () => void; isExiting:
 
 export default function Home() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("homeScreen");
-  const [juneIdeas, setJuneIdeas] = useState<Idea[]>(initialJuneIdeas);
+  const [storedIdeas, setStoredIdeas] = useState<StoredIdea[]>([]);
   const [total, setTotal] = useState(12);
   const [today, setToday] = useState(3);
   const [input, setInput] = useState("");
@@ -353,7 +462,19 @@ export default function Home() {
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setShowWelcome(localStorage.getItem("ideapp-welcome-seen") !== "true");
+    try {
+      setShowWelcome(localStorage.getItem("ideapp-welcome-seen") !== "true");
+    } catch {
+      setShowWelcome(true);
+    }
+
+    const loadedIdeas = readStoredIdeas();
+    if (loadedIdeas.length > 0) {
+      setStoredIdeas(loadedIdeas);
+      setTotal(12 + loadedIdeas.length);
+      setToday(3 + loadedIdeas.filter((idea) => new Date(idea.createdAt).toDateString() === new Date().toDateString()).length);
+    }
+
     setHasCheckedWelcome(true);
 
     return () => {
@@ -416,16 +537,23 @@ export default function Home() {
 
     setIsPressed(true);
     setTimeout(() => setIsPressed(false), 130);
-    setJuneIdeas((ideas) => [
-      {
-        emoji: "🌱",
-        title: preparedIdea.title,
-        copy: preparedIdea.summary,
-        tag: currentMonthName().split(" ")[0],
-        time: "Ahora",
-      },
-      ...ideas,
-    ]);
+
+    const newIdea: StoredIdea = {
+      id: createIdeaId(),
+      title: preparedIdea.title,
+      originalText: preparedIdea.original,
+      correctedText: preparedIdea.text,
+      summary: preparedIdea.summary,
+      month: currentMonthName(),
+      createdAt: new Date().toISOString(),
+      status: "Guardada",
+    };
+
+    setStoredIdeas((ideas) => {
+      const nextIdeas = [newIdea, ...ideas];
+      writeStoredIdeas(nextIdeas);
+      return nextIdeas;
+    });
     setInput("");
     setTotal((value) => value + 1);
     setToday((value) => value + 1);
@@ -446,7 +574,11 @@ export default function Home() {
   function enterApp() {
     setIsWelcomeExiting(true);
     window.setTimeout(() => {
-      localStorage.setItem("ideapp-welcome-seen", "true");
+      try {
+        localStorage.setItem("ideapp-welcome-seen", "true");
+      } catch {
+        // Ignore storage failures so the app can still be used.
+      }
       setShowWelcome(false);
       setIsWelcomeExiting(false);
     }, 320);
@@ -459,6 +591,9 @@ export default function Home() {
   if (showWelcome) {
     return <WelcomeScreen onEnter={enterApp} isExiting={isWelcomeExiting} />;
   }
+
+  const monthGroups = storedIdeas.length > 0 ? groupStoredIdeasByMonth(storedIdeas) : fakeMonthGroups;
+  const activeMonthLabel = `${currentMonthTag(monthGroups[0]?.month || currentMonthName())} activo`;
 
   return (
     <>
@@ -550,23 +685,18 @@ export default function Home() {
           <section className="section" aria-labelledby="timelineTitle">
             <div className="section-head">
               <h2 className="section-title" id="timelineTitle">Ideas por mes</h2>
-              <span className="count-badge">Junio activo</span>
+              <span className="count-badge">{activeMonthLabel}</span>
             </div>
 
             <div>
-              <section className="month-section" data-month="Junio 2026">
-                <h2 className="month-title">Junio 2026</h2>
-                <div className="ideas-list">
-                  {juneIdeas.map((idea) => <IdeaCard key={`${idea.title}-${idea.time}`} idea={idea} />)}
-                </div>
-              </section>
-
-              <section className="month-section" data-month="Mayo 2026">
-                <h2 className="month-title">Mayo 2026</h2>
-                <div className="ideas-list">
-                  {mayIdeas.map((idea) => <IdeaCard key={idea.title} idea={idea} />)}
-                </div>
-              </section>
+              {monthGroups.map((group) => (
+                <section className="month-section" data-month={group.month} key={group.month}>
+                  <h2 className="month-title">{group.month}</h2>
+                  <div className="ideas-list">
+                    {group.ideas.map((idea) => <IdeaCard key={idea.id || idea.title} idea={idea} />)}
+                  </div>
+                </section>
+              ))}
             </div>
           </section>
 
