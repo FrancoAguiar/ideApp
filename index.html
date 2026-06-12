@@ -71,7 +71,7 @@
       width: min(100%, 480px);
       min-height: 100vh;
       margin: 0 auto;
-      padding: max(18px, env(safe-area-inset-top)) 18px calc(104px + env(safe-area-inset-bottom));
+      padding: max(14px, env(safe-area-inset-top)) 18px calc(92px + env(safe-area-inset-bottom));
       position: relative;
     }
 
@@ -80,7 +80,7 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 14px;
-      padding: 6px 2px 18px;
+      padding: 4px 2px 14px;
     }
 
     .eyebrow {
@@ -100,16 +100,16 @@
     }
 
     h1 {
-      margin-top: 12px;
+      margin-top: 10px;
       font-size: 34px;
       line-height: 1.02;
       letter-spacing: 0;
     }
 
     .subtitle {
-      margin-top: 8px;
+      margin-top: 7px;
       color: var(--muted);
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 650;
     }
 
@@ -131,15 +131,15 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .stat-pill {
-      min-height: 72px;
+      min-height: 64px;
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 13px;
+      padding: 11px 12px;
       border-radius: 22px;
       background: rgba(255, 255, 255, 0.84);
       border: 1px solid rgba(233, 234, 223, 0.88);
@@ -185,19 +185,19 @@
     .capture-card {
       position: relative;
       overflow: hidden;
-      padding: 24px;
-      border-radius: var(--radius-xl);
+      padding: 18px;
+      border-radius: 28px;
       background: var(--card);
       border: 1px solid rgba(233, 234, 223, 0.88);
       box-shadow: var(--shadow);
-      transition: transform 180ms ease, box-shadow 180ms ease;
+      transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
     }
 
     .capture-card::before {
       content: "";
       position: absolute;
       inset: 0 0 auto 0;
-      height: 8px;
+      height: 7px;
       background: linear-gradient(90deg, var(--green), #91e85d, var(--yellow));
     }
 
@@ -205,12 +205,12 @@
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 14px;
+      gap: 10px;
+      margin-bottom: 11px;
     }
 
     .capture-card h2 {
-      font-size: 24px;
+      font-size: 22px;
       line-height: 1.1;
       letter-spacing: 0;
     }
@@ -218,8 +218,8 @@
     .ai-soon {
       display: inline-flex;
       align-items: center;
-      min-height: 30px;
-      padding: 7px 10px;
+      min-height: 28px;
+      padding: 6px 9px;
       border-radius: 999px;
       background: #fff6cc;
       color: #715719;
@@ -236,18 +236,18 @@
 
     textarea {
       width: 100%;
-      min-height: 128px;
+      min-height: 86px;
       resize: none;
       border: 2px solid #edf0e7;
       outline: 0;
       border-radius: 23px;
-      padding: 18px 18px 50px;
+      padding: 14px 48px 14px 15px;
       color: var(--ink);
       background: #fbfcf7;
-      font-size: 17px;
+      font-size: 16px;
       line-height: 1.42;
       font-weight: 650;
-      transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+      transition: border-color 200ms ease, background 200ms ease, transform 200ms ease, box-shadow 200ms ease;
     }
 
     textarea::placeholder {
@@ -257,32 +257,34 @@
     textarea:focus {
       border-color: #94df62;
       background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(88, 204, 2, 0.08);
     }
 
     .spark {
       position: absolute;
       right: 16px;
-      bottom: 15px;
+      top: 50%;
       display: inline-grid;
       place-items: center;
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       border-radius: 14px;
       background: #fff3be;
       box-shadow: inset 0 -3px 0 rgba(225, 184, 61, 0.38);
       font-size: 18px;
+      transform: translateY(-50%);
     }
 
     .primary-button,
     .secondary-button {
       width: 100%;
-      min-height: 58px;
-      margin-top: 15px;
-      border-radius: 19px;
+      min-height: 52px;
+      margin-top: 12px;
+      border-radius: 18px;
       font-weight: 950;
       font-size: 17px;
       transform: translateY(0);
-      transition: transform 120ms ease, box-shadow 120ms ease, filter 160ms ease, background 160ms ease;
+      transition: transform 140ms ease, box-shadow 140ms ease, filter 180ms ease, background 180ms ease;
     }
 
     .primary-button {
@@ -317,19 +319,30 @@
       display: none;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      min-height: 70px;
-      margin-top: 14px;
-      border-radius: 21px;
-      background: var(--green-pale);
+      gap: 9px;
+      min-height: 54px;
+      margin-top: 12px;
+      border-radius: 19px;
+      background: linear-gradient(180deg, #f5ffef 0%, var(--green-pale) 100%);
       color: #317a02;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 950;
       border: 1px solid #d9efcc;
+      box-shadow: inset 0 -3px 0 rgba(88, 204, 2, 0.09);
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
     }
 
     .processing.show {
       display: flex;
+      animation: softReveal 260ms ease forwards;
+    }
+
+    @keyframes softReveal {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     .dots {
@@ -361,8 +374,8 @@
 
     .preview-card {
       display: none;
-      margin-top: 14px;
-      padding: 16px;
+      margin-top: 12px;
+      padding: 14px;
       border-radius: 23px;
       background: linear-gradient(180deg, #ffffff 0%, #fbfff7 100%);
       border: 1px solid #e4efd9;
@@ -375,8 +388,8 @@
     }
 
     .preview-item + .preview-item {
-      margin-top: 14px;
-      padding-top: 14px;
+      margin-top: 12px;
+      padding-top: 12px;
       border-top: 1px solid #ecf1e5;
     }
 
@@ -399,7 +412,7 @@
 
     .feedback {
       min-height: 28px;
-      margin-top: 13px;
+      margin-top: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -430,7 +443,7 @@
     }
 
     .section {
-      margin-top: 26px;
+      margin-top: 22px;
     }
 
     .section-head {
@@ -438,7 +451,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 13px;
+      margin-bottom: 11px;
       padding: 0 2px;
     }
 
@@ -473,7 +486,7 @@
     }
 
     .month-section + .month-section {
-      margin-top: 27px;
+      margin-top: 24px;
     }
 
     .month-section::before {
@@ -492,8 +505,8 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 13px;
-      font-size: 25px;
+      margin-bottom: 12px;
+      font-size: 24px;
       line-height: 1.1;
       font-weight: 950;
       letter-spacing: 0;
@@ -511,20 +524,20 @@
 
     .ideas-list {
       display: grid;
-      gap: 13px;
+      gap: 11px;
     }
 
     .idea-card {
       display: grid;
-      grid-template-columns: 46px 1fr;
-      gap: 13px;
-      padding: 16px;
-      border-radius: var(--radius-lg);
+      grid-template-columns: 44px 1fr;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 23px;
       background: var(--card);
       border: 1px solid rgba(233, 234, 223, 0.9);
       box-shadow: var(--soft-shadow);
       transform: translateY(0) scale(1);
-      transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
       animation: cardIn 380ms cubic-bezier(.2, .95, .25, 1.12);
     }
 
@@ -558,7 +571,7 @@
       border-radius: 18px;
       background: #f1f8eb;
       box-shadow: inset 0 -4px 0 rgba(88, 204, 2, 0.13);
-      font-size: 23px;
+      font-size: 22px;
     }
 
     .idea-content {
@@ -570,7 +583,7 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .idea-title {
@@ -591,10 +604,14 @@
 
     .idea-copy {
       color: #626c5a;
-      font-size: 14px;
-      line-height: 1.35;
+      font-size: 13px;
+      line-height: 1.32;
       font-weight: 650;
-      margin-bottom: 11px;
+      margin-bottom: 10px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .idea-meta {
@@ -784,34 +801,6 @@
       font-weight: 800;
     }
 
-    .fab {
-      position: fixed;
-      right: max(18px, calc((100vw - 480px) / 2 + 18px));
-      bottom: calc(86px + env(safe-area-inset-bottom));
-      width: 62px;
-      height: 62px;
-      z-index: 6;
-      border-radius: 23px;
-      background: var(--green);
-      color: white;
-      font-size: 36px;
-      font-weight: 850;
-      line-height: 1;
-      box-shadow: 0 7px 0 var(--green-dark), 0 16px 28px rgba(88, 204, 2, 0.28);
-      transition: transform 120ms ease, box-shadow 120ms ease, opacity 160ms ease;
-    }
-
-    .fab:active {
-      transform: translateY(5px);
-      box-shadow: 0 2px 0 var(--green-dark), 0 10px 20px rgba(88, 204, 2, 0.22);
-    }
-
-    .fab.hidden {
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(10px) scale(0.94);
-    }
-
     .bottom-nav {
       position: fixed;
       left: 50%;
@@ -821,31 +810,31 @@
       transform: translateX(-50%);
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-      background: rgba(255, 255, 255, 0.9);
+      gap: 6px;
+      padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+      background: rgba(255, 255, 255, 0.92);
       border-top: 1px solid rgba(224, 229, 215, 0.9);
       box-shadow: 0 -14px 34px rgba(38, 50, 29, 0.08);
       backdrop-filter: blur(18px);
     }
 
     .tab {
-      min-height: 56px;
+      min-height: 54px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      border-radius: 18px;
+      gap: 3px;
+      border-radius: 17px;
       background: transparent;
       color: #8a9383;
       font-size: 12px;
       font-weight: 950;
-      transition: background 180ms ease, color 180ms ease, transform 120ms ease;
+      transition: background 200ms ease, color 200ms ease, transform 140ms ease, box-shadow 200ms ease;
     }
 
     .tab-icon {
-      font-size: 20px;
+      font-size: 19px;
       line-height: 1;
     }
 
@@ -856,6 +845,7 @@
     .tab.active {
       background: var(--green-soft);
       color: #2f7d02;
+      box-shadow: inset 0 -3px 0 rgba(49, 122, 2, 0.1);
     }
 
     @media (min-width: 700px) {
@@ -917,7 +907,7 @@
     <header class="topbar">
       <div>
         <div class="eyebrow" id="todaySaved">3 ideas guardadas hoy</div>
-        <h1 id="screenHeading">Hola Fran</h1>
+        <h1 id="screenHeading">👋 Hola Fran</h1>
         <p class="subtitle" id="screenSubtitle">No pierdas ninguna idea.</p>
       </div>
       <div class="avatar" aria-hidden="true">💡</div>
@@ -934,7 +924,7 @@
       </div>
     </section>
 
-    <section class="screen active" id="homeScreen" data-title="Hola Fran" data-subtitle="No pierdas ninguna idea." data-eyebrow="3 ideas guardadas hoy">
+    <section class="screen active" id="homeScreen" data-title="👋 Hola Fran" data-subtitle="No pierdas ninguna idea." data-eyebrow="3 ideas guardadas hoy">
       <section class="capture-card" id="captureCard">
         <div class="capture-head">
           <h2>¿Qué idea apareció?</h2>
@@ -949,7 +939,7 @@
         <button class="primary-button" id="organizeIdea" type="button">Organizar idea</button>
 
         <div class="processing" id="processing" aria-live="polite">
-          Procesando
+          ✨ Organizando idea...
           <span class="dots" aria-hidden="true"><span></span><span></span><span></span></span>
         </div>
 
@@ -1225,8 +1215,6 @@
     </section>
   </main>
 
-  <button class="fab" id="fab" type="button" aria-label="Capturar nueva idea">+</button>
-
   <nav class="bottom-nav" aria-label="Navegación principal">
     <button class="tab active" type="button" data-screen="homeScreen">
       <span class="tab-icon" aria-hidden="true">🏠</span>
@@ -1257,7 +1245,6 @@
     const currentMonthList = document.querySelector("#currentMonthList");
     const totalIdeas = document.querySelector("#totalIdeas");
     const todaySaved = document.querySelector("#todaySaved");
-    const fab = document.querySelector("#fab");
     const tabs = document.querySelectorAll(".tab");
     const screens = document.querySelectorAll(".screen");
     const screenHeading = document.querySelector("#screenHeading");
@@ -1442,7 +1429,6 @@
       screenHeading.textContent = nextScreen.dataset.title;
       screenSubtitle.textContent = nextScreen.dataset.subtitle;
       todaySaved.textContent = nextScreen.dataset.eyebrow;
-      fab.classList.toggle("hidden", screenId !== "homeScreen");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -1469,14 +1455,6 @@
           organizeIdea();
         }
       }
-    });
-
-    fab.addEventListener("click", () => {
-      switchScreen("homeScreen");
-      window.setTimeout(() => {
-        input.focus();
-        captureCard.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 180);
     });
 
     tabs.forEach((tab) => {
