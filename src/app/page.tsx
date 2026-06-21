@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   createIdea,
+  deleteIdea as deleteIdeaFromSupabase,
   getIdeas,
   isSupabaseConfigured,
   updateIdea,
@@ -28,13 +29,11 @@ type PreparedIdea = {
   title: string;
   text: string;
   summary: string;
-  nextSteps: string[];
 };
 
 type OrganizedIdeaResult = {
   title: string;
   summary: string;
-  nextSteps: string[];
 };
 
 type StoredIdea = {
@@ -56,6 +55,7 @@ type MonthGroup = {
 };
 
 const IDEAS_STORAGE_KEY = "ideapp_ideas";
+const DELETED_IDEAS_STORAGE_KEY = "ideapp_deleted_idea_ids";
 
 const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: string }> = {
   homeScreen: {
@@ -192,80 +192,63 @@ function cleanText(text: string) {
   return text.trim().replace(/\s+/g, " ");
 }
 
-function titleFromText(text: string) {
-  const lower = cleanText(text).toLowerCase();
-
-  if (lower.includes("recuerd") || lower.includes("ideas")) return "App para recordar ideas";
-  if (lower.includes("reel") || lower.includes("contenido")) return "Contenido para capturar ideas";
-  if (lower.includes("proyecto")) return "Sistema para organizar proyectos";
-
-  const words = cleanText(text).split(" ").slice(0, 5).join(" ");
-  return words.length > 0 ? words.charAt(0).toUpperCase() + words.slice(1) : "Idea rápida";
+function limitWords(text: string, maxWords: number) {
+  return cleanText(text).split(" ").slice(0, maxWords).join(" ");
 }
 
 function correctedTextFromText(text: string) {
-  const lower = cleanText(text).toLowerCase();
+  const replacements: Array<[RegExp, string]> = [
+    [/\bq\b/gi, "que"],
+    [/\bxq\b/gi, "porque"],
+    [/\bapp\b/gi, "aplicación"],
+    [/\bfots\b/gi, "fotos"],
+    [/\bgracios+s\b/gi, "graciosos"],
+    [/\brecuerde\b/gi, "recuerde"],
+  ];
 
-  if (lower.includes("recuerd") || lower.includes("cosas q") || lower.includes("ideas")) {
-    return "Una aplicación que me ayuda a recordar ideas que se me ocurren durante el día.";
-  }
+  let corrected = cleanText(text);
+  replacements.forEach(([pattern, replacement]) => {
+    corrected = corrected.replace(pattern, replacement);
+  });
 
-  if (lower.includes("reel") || lower.includes("contenido")) {
-    return "Una pieza de contenido simple para mostrar por qué conviene anotar las ideas apenas aparecen.";
-  }
-
-  const clean = cleanText(text);
-  return clean.charAt(0).toUpperCase() + clean.slice(1);
-}
-
-function summaryFromText(text: string) {
-  const lower = cleanText(text).toLowerCase();
-
-  if (lower.includes("recuerd") || lower.includes("ideas")) {
-    return "Una herramienta simple para capturar ideas rápidas, organizarlas y recuperarlas más adelante.";
-  }
-
-  if (lower.includes("proyecto")) {
-    return "Un sistema liviano para transformar ideas sueltas en próximos pasos fáciles de revisar.";
-  }
-
-  return "Una idea guardada con una forma más clara para poder retomarla después sin esfuerzo.";
+  corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1);
+  return /[.!?]$/.test(corrected) ? corrected : `${corrected}.`;
 }
 
 function organizeIdeaLocally(text: string): OrganizedIdeaResult {
-  const normalizedText = cleanText(text);
-  const lower = normalizedText.toLowerCase();
+  const correctedText = correctedTextFromText(text);
+  const lower = correctedText.toLowerCase();
 
-  let nextSteps = [
-    "Definir qué resultado concreto debería lograr esta idea.",
-    "Anotar la versión más simple que se podría probar.",
-    "Elegir una primera acción pequeña para empezar.",
-  ];
-
-  if (lower.includes("app") || lower.includes("herramienta") || lower.includes("producto")) {
-    nextSteps = [
-      "Definir el problema principal que resolvería.",
-      "Listar las tres funciones esenciales de la primera versión.",
-      "Crear un prototipo simple para validar el flujo.",
-    ];
-  } else if (lower.includes("reel") || lower.includes("contenido") || lower.includes("video")) {
-    nextSteps = [
-      "Definir la idea central en una sola frase.",
-      "Preparar un guion breve con inicio, desarrollo y cierre.",
-      "Elegir el formato y producir una primera versión.",
-    ];
-  } else if (lower.includes("proyecto") || lower.includes("sistema")) {
-    nextSteps = [
-      "Aclarar el objetivo y el resultado esperado.",
-      "Dividir la idea en etapas pequeñas y concretas.",
-      "Seleccionar la primera etapa para comenzar.",
-    ];
+  if (lower.includes("fotos") && lower.includes("perros")) {
+    return {
+      title: "Generador de Fotos Divertidas para Perros",
+      summary: "Transforma fotos de perros en imágenes creativas y humorísticas.",
+    };
   }
 
+  if (lower.includes("recordar") || lower.includes("recuerde") || lower.includes("ideas")) {
+    return {
+      title: "Aplicación para Recordar Ideas",
+      summary: "Captura ideas rápidamente, las organiza y permite recuperarlas cuando vuelvan a ser útiles.",
+    };
+  }
+
+  if (lower.includes("reel") || lower.includes("contenido") || lower.includes("video")) {
+    return {
+      title: "Contenido Breve para Compartir",
+      summary: "Convierte una idea central en contenido claro, atractivo y fácil de publicar.",
+    };
+  }
+
+  const titleWords = correctedText
+    .replace(/[.!?]/g, "")
+    .split(" ")
+    .filter((word) => !["una", "un", "para", "crear", "hacer"].includes(word.toLowerCase()));
+  const title = limitWords(titleWords.join(" "), 6);
+
   return {
-    title: titleFromText(normalizedText),
-    summary: summaryFromText(normalizedText),
-    nextSteps,
+    title: title ? title.charAt(0).toUpperCase() + title.slice(1) : "Idea Organizada",
+    summary: limitWords(correctedText, 20),
   };
 }
 
@@ -359,6 +342,28 @@ function writeStoredIdeas(ideas: StoredIdea[]) {
   }
 }
 
+function readDeletedIdeaIds() {
+  try {
+    const rawIds = window.localStorage.getItem(DELETED_IDEAS_STORAGE_KEY);
+    const parsedIds: unknown = rawIds ? JSON.parse(rawIds) : [];
+    return Array.isArray(parsedIds)
+      ? parsedIds.filter((id): id is string => typeof id === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberDeletedIdeaId(id: string) {
+  try {
+    const deletedIds = new Set(readDeletedIdeaIds());
+    deletedIds.add(id);
+    window.localStorage.setItem(DELETED_IDEAS_STORAGE_KEY, JSON.stringify(Array.from(deletedIds)));
+  } catch {
+    // Keep the UI responsive even when localStorage is unavailable.
+  }
+}
+
 function toDisplayIdea(idea: StoredIdea): Idea {
   return {
     id: idea.id,
@@ -435,17 +440,32 @@ function PinIcon({ active }: { active: boolean }) {
   );
 }
 
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4.5 7.2h15" />
+      <path d="M9.2 7.2V4.8h5.6v2.4" />
+      <path d="m6.8 7.2.8 12h8.8l.8-12" />
+      <path d="M10 10.5v5.4M14 10.5v5.4" />
+    </svg>
+  );
+}
+
 function IdeaCard({
   idea,
   onToggleFavorite,
   onTogglePinned,
+  onRequestDelete,
+  isDeleting,
 }: {
   idea: Idea;
   onToggleFavorite: (idea: Idea) => void;
   onTogglePinned: (idea: Idea) => void;
+  onRequestDelete: (idea: Idea) => void;
+  isDeleting: boolean;
 }) {
   return (
-    <article className="idea-card">
+    <article className={`idea-card ${isDeleting ? "removing" : ""}`}>
       <div className="idea-emoji" aria-hidden="true">{idea.emoji}</div>
       <div className="idea-content">
         <div className="idea-topline">
@@ -474,6 +494,14 @@ function IdeaCard({
               onClick={() => onTogglePinned(idea)}
             >
               <PinIcon active={idea.isPinned} />
+            </button>
+            <button
+              className="idea-action destructive"
+              type="button"
+              aria-label="Eliminar idea"
+              onClick={() => onRequestDelete(idea)}
+            >
+              <TrashIcon />
             </button>
           </span>
         </div>
@@ -635,6 +663,8 @@ export default function Home() {
   const [hasCheckedWelcome, setHasCheckedWelcome] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
+  const [ideaPendingDelete, setIdeaPendingDelete] = useState<Idea | null>(null);
+  const [deletingIdeaId, setDeletingIdeaId] = useState<string | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -649,13 +679,17 @@ export default function Home() {
 
     async function loadIdeas() {
       let loadedIdeas: StoredIdea[] = [];
-      const localIdeas = readStoredIdeas();
+      const deletedIdeaIds = new Set(readDeletedIdeaIds());
+      const localIdeas = readStoredIdeas().filter((idea) => !deletedIdeaIds.has(idea.id));
 
       if (isSupabaseConfigured) {
         try {
           const supabaseIdeas = await getIdeas();
           const mergedIdeas = new Map(
-            supabaseIdeas.map(toStoredIdea).map((idea) => [idea.id, idea]),
+            supabaseIdeas
+              .map(toStoredIdea)
+              .filter((idea) => !deletedIdeaIds.has(idea.id))
+              .map((idea) => [idea.id, idea]),
           );
 
           localIdeas.forEach((idea) => {
@@ -828,6 +862,45 @@ export default function Home() {
     void toggleIdeaFlag(idea, "isPinned");
   }
 
+  function requestDeleteIdea(idea: Idea) {
+    setIdeaPendingDelete(idea);
+  }
+
+  function cancelDeleteIdea() {
+    setIdeaPendingDelete(null);
+  }
+
+  function confirmDeleteIdea() {
+    if (!ideaPendingDelete) return;
+
+    const idea = ideaPendingDelete;
+    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const storedIdea = baseIdeas.find((item) => item.id === idea.id);
+    const nextIdeas = baseIdeas.filter((item) => item.id !== idea.id);
+
+    setIdeaPendingDelete(null);
+    setDeletingIdeaId(idea.id);
+
+    window.setTimeout(() => {
+      setStoredIdeas(nextIdeas);
+      writeStoredIdeas(nextIdeas);
+      setDeletingIdeaId(null);
+      setTotal((value) => Math.max(0, value - 1));
+
+      if (storedIdea && new Date(storedIdea.createdAt).toDateString() === new Date().toDateString()) {
+        setToday((value) => Math.max(0, value - 1));
+      }
+    }, 220);
+
+    const isFakeIdea = idea.id.startsWith("fake-");
+    if (!isSupabaseConfigured || isFakeIdea) return;
+
+    void deleteIdeaFromSupabase(idea.id).catch((error) => {
+      console.error("Failed to delete idea from Supabase", error);
+      rememberDeletedIdeaId(idea.id);
+    });
+  }
+
   function switchScreen(screenId: ScreenId) {
     setActiveScreen(screenId);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -933,14 +1006,6 @@ export default function Home() {
                     <div className="preview-label">📝 Resumen</div>
                     <p className="preview-value">{preparedIdea.summary}</p>
                   </div>
-                  <div className="preview-item">
-                    <div className="preview-label">✓ Próximos pasos</div>
-                    <ol className="preview-steps">
-                      {preparedIdea.nextSteps.map((step) => (
-                        <li key={step}>{step}</li>
-                      ))}
-                    </ol>
-                  </div>
                   <button className={`primary-button ${isPressed ? "pressed" : ""}`} type="button" onClick={saveIdea}>
                     Guardar idea
                   </button>
@@ -973,6 +1038,8 @@ export default function Home() {
                         idea={idea}
                         onToggleFavorite={toggleFavorite}
                         onTogglePinned={togglePinned}
+                        onRequestDelete={requestDeleteIdea}
+                        isDeleting={deletingIdeaId === idea.id}
                       />
                     ))}
                   </div>
@@ -1060,6 +1127,26 @@ export default function Home() {
           <span>Ajustes</span>
         </button>
       </nav>
+
+      {ideaPendingDelete && (
+        <div className="delete-dialog-backdrop" role="presentation" onClick={cancelDeleteIdea}>
+          <section
+            className="delete-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+            aria-describedby="delete-dialog-description"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="delete-dialog-title">¿Eliminar esta idea?</h2>
+            <p id="delete-dialog-description">Esta acción no se puede deshacer.</p>
+            <div className="delete-dialog-actions">
+              <button type="button" className="delete-cancel" onClick={cancelDeleteIdea}>Cancelar</button>
+              <button type="button" className="delete-confirm" onClick={confirmDeleteIdea}>Eliminar</button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }
