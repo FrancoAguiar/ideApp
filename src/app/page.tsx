@@ -5,6 +5,7 @@ import {
   createIdea,
   getIdeas,
   isSupabaseConfigured,
+  updateIdea,
   type CreateIdeaInput,
   type Idea as SupabaseIdea,
 } from "@/lib/supabase";
@@ -12,12 +13,14 @@ import {
 type ScreenId = "homeScreen" | "ideasScreen" | "settingsScreen";
 
 type Idea = {
-  id?: string;
+  id: string;
   emoji: string;
   title: string;
   copy: string;
   tag: string;
   time: string;
+  isFavorite: boolean;
+  isPinned: boolean;
 };
 
 type PreparedIdea = {
@@ -36,6 +39,8 @@ type StoredIdea = {
   month: string;
   createdAt: string;
   status: "Guardada";
+  isFavorite: boolean;
+  isPinned: boolean;
 };
 
 type MonthGroup = {
@@ -65,42 +70,57 @@ const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: s
 
 const initialJuneIdeas: Idea[] = [
   {
+    id: "fake-june-app",
     emoji: "📱",
     title: "App para recordar ideas",
     copy: "Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.",
     tag: "Junio",
     time: "Hace 4 min",
+    isFavorite: false,
+    isPinned: false,
   },
   {
+    id: "fake-june-reel",
     emoji: "🎬",
     title: "Reel para diseñadores",
     copy: "Un video corto sobre cómo las buenas ideas se pierden cuando no se capturan a tiempo.",
     tag: "Junio",
     time: "Hoy",
+    isFavorite: false,
+    isPinned: false,
   },
   {
+    id: "fake-june-projects",
     emoji: "🧭",
     title: "Sistema para organizar proyectos",
     copy: "Un método simple para transformar ideas sueltas en próximos pasos concretos.",
     tag: "Junio",
     time: "Ayer",
+    isFavorite: false,
+    isPinned: false,
   },
 ];
 
 const mayIdeas: Idea[] = [
   {
+    id: "fake-may-product",
     emoji: "🧩",
     title: "Producto digital para freelancers",
     copy: "Una plantilla para convertir servicios repetidos en productos digitales simples.",
     tag: "Mayo",
     time: "Mayo",
+    isFavorite: false,
+    isPinned: false,
   },
   {
+    id: "fake-may-messages",
     emoji: "💬",
     title: "Automatización de mensajes",
     copy: "Un flujo amable para responder consultas frecuentes sin perder el tono humano.",
     tag: "Mayo",
     time: "Mayo",
+    isFavorite: false,
+    isPinned: false,
   },
 ];
 
@@ -133,6 +153,7 @@ const habitCards = [
     title: "Favoritas",
     copy: "Las que querés cuidar.",
     panelCopy: "Ideas marcadas como especiales para volver sin tener que buscarlas.",
+    countType: "favorite",
   },
   {
     icon: "📦",
@@ -141,10 +162,11 @@ const habitCards = [
     panelCopy: "Ideas que descansan, pero siguen guardadas para cuando vuelvan a servir.",
   },
   {
-    icon: "👀",
-    title: "Por revisar",
-    copy: "Pendientes suaves.",
-    panelCopy: "Un espacio para ideas que Ideapp puede recordarte más adelante, sin presión.",
+    icon: "📌",
+    title: "Fijadas",
+    copy: "Siempre arriba de su mes.",
+    panelCopy: "Ideas fijadas para mantenerlas visibles arriba de cada mes.",
+    countType: "pinned",
   },
 ];
 
@@ -218,6 +240,8 @@ function toStoredIdea(idea: SupabaseIdea): StoredIdea {
     month: idea.month || currentMonthName(),
     createdAt: idea.created_at,
     status: idea.status === "Guardada" ? "Guardada" : "Guardada",
+    isFavorite: idea.is_favorite ?? false,
+    isPinned: idea.is_pinned ?? false,
   };
 }
 
@@ -230,8 +254,8 @@ function toSupabaseIdeaInput(idea: StoredIdea): CreateIdeaInput {
     summary: idea.summary,
     month: idea.month,
     status: idea.status,
-    is_favorite: false,
-    is_pinned: false,
+    is_favorite: idea.isFavorite,
+    is_pinned: idea.isPinned,
     created_at: idea.createdAt,
   };
 }
@@ -273,7 +297,11 @@ function readStoredIdeas() {
     const parsedIdeas: unknown = JSON.parse(rawIdeas);
     if (!Array.isArray(parsedIdeas)) return [];
 
-    return parsedIdeas.filter(isStoredIdea);
+    return parsedIdeas.filter(isStoredIdea).map((idea) => ({
+      ...idea,
+      isFavorite: idea.isFavorite ?? false,
+      isPinned: idea.isPinned ?? false,
+    }));
   } catch {
     return [];
   }
@@ -295,6 +323,8 @@ function toDisplayIdea(idea: StoredIdea): Idea {
     copy: idea.summary,
     tag: currentMonthTag(idea.month),
     time: formatIdeaTime(idea.createdAt),
+    isFavorite: idea.isFavorite,
+    isPinned: idea.isPinned,
   };
 }
 
@@ -309,7 +339,13 @@ function groupStoredIdeasByMonth(ideas: StoredIdea[]): MonthGroup[] {
 
   return Array.from(groups.entries()).map(([month, monthIdeas]) => ({
     month,
-    ideas: monthIdeas,
+    ideas: monthIdeas.sort((a, b) => {
+      if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+
+      const aIdea = ideas.find((idea) => idea.id === a.id);
+      const bIdea = ideas.find((idea) => idea.id === b.id);
+      return new Date(bIdea?.createdAt || 0).getTime() - new Date(aIdea?.createdAt || 0).getTime();
+    }),
   }));
 }
 
@@ -321,7 +357,49 @@ function createIdeaId() {
   return `idea-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function IdeaCard({ idea }: { idea: Idea }) {
+function fakeIdeasAsStoredIdeas() {
+  return fakeMonthGroups.flatMap((group, groupIndex) =>
+    group.ideas.map((idea, ideaIndex) => ({
+      id: idea.id,
+      title: idea.title,
+      originalText: idea.copy,
+      correctedText: idea.copy,
+      summary: idea.copy,
+      month: group.month,
+      createdAt: new Date(Date.UTC(2026, 5 - groupIndex, 10 - ideaIndex, 12)).toISOString(),
+      status: "Guardada" as const,
+      isFavorite: idea.isFavorite,
+      isPinned: idea.isPinned,
+    })),
+  );
+}
+
+function FavoriteIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8L12 3.6Z" />
+    </svg>
+  );
+}
+
+function PinIcon({ active }: { active: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m8.1 4.2 7.7 7.7" />
+      <path d="m14.7 3.7 5.6 5.6-3.2 1.1-4.7 4.7-1.1 4.3-2.2-2.2-4.5 4.5-1.3-1.3 4.5-4.5-2.2-2.2 4.3-1.1 4.7-4.7 1.1-3.2Z" />
+    </svg>
+  );
+}
+
+function IdeaCard({
+  idea,
+  onToggleFavorite,
+  onTogglePinned,
+}: {
+  idea: Idea;
+  onToggleFavorite: (idea: Idea) => void;
+  onTogglePinned: (idea: Idea) => void;
+}) {
   return (
     <article className="idea-card">
       <div className="idea-emoji" aria-hidden="true">{idea.emoji}</div>
@@ -334,6 +412,26 @@ function IdeaCard({ idea }: { idea: Idea }) {
         <div className="idea-meta">
           <span className="tag">{idea.tag}</span>
           <span className="saved">Guardada</span>
+          <span className="idea-actions">
+            <button
+              className={`idea-action ${idea.isFavorite ? "active" : ""}`}
+              type="button"
+              aria-label={idea.isFavorite ? "Quitar de favoritas" : "Marcar como favorita"}
+              aria-pressed={idea.isFavorite}
+              onClick={() => onToggleFavorite(idea)}
+            >
+              <FavoriteIcon active={idea.isFavorite} />
+            </button>
+            <button
+              className={`idea-action ${idea.isPinned ? "active" : ""}`}
+              type="button"
+              aria-label={idea.isPinned ? "Desfijar idea" : "Fijar idea"}
+              aria-pressed={idea.isPinned}
+              onClick={() => onTogglePinned(idea)}
+            >
+              <PinIcon active={idea.isPinned} />
+            </button>
+          </span>
         </div>
       </div>
     </article>
@@ -507,16 +605,28 @@ export default function Home() {
 
     async function loadIdeas() {
       let loadedIdeas: StoredIdea[] = [];
+      const localIdeas = readStoredIdeas();
 
       if (isSupabaseConfigured) {
         try {
           const supabaseIdeas = await getIdeas();
-          loadedIdeas = supabaseIdeas.map(toStoredIdea);
+          const mergedIdeas = new Map(
+            supabaseIdeas.map(toStoredIdea).map((idea) => [idea.id, idea]),
+          );
+
+          localIdeas.forEach((idea) => {
+            mergedIdeas.set(idea.id, {
+              ...mergedIdeas.get(idea.id),
+              ...idea,
+            });
+          });
+
+          loadedIdeas = Array.from(mergedIdeas.values());
         } catch {
-          loadedIdeas = readStoredIdeas();
+          loadedIdeas = localIdeas;
         }
       } else {
-        loadedIdeas = readStoredIdeas();
+        loadedIdeas = localIdeas;
       }
 
       if (!isMounted) return;
@@ -603,6 +713,8 @@ export default function Home() {
       month: currentMonthName(),
       createdAt: new Date().toISOString(),
       status: "Guardada",
+      isFavorite: false,
+      isPinned: false,
     };
 
     let ideaToDisplay = newIdea;
@@ -629,6 +741,46 @@ export default function Home() {
     setToday((value) => value + 1);
     resetPreview();
     showFeedback("Listo. Esta idea ya no se pierde.");
+  }
+
+  async function toggleIdeaFlag(idea: Idea, flag: "isFavorite" | "isPinned") {
+    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const currentIdea = baseIdeas.find((storedIdea) => storedIdea.id === idea.id);
+    if (!currentIdea) return;
+
+    const nextValue = !currentIdea[flag];
+    const nextIdeas = baseIdeas.map((storedIdea) =>
+      storedIdea.id === idea.id
+        ? { ...storedIdea, [flag]: nextValue }
+        : storedIdea,
+    );
+
+    setStoredIdeas(nextIdeas);
+    writeStoredIdeas(nextIdeas);
+
+    const isFakeIdea = idea.id.startsWith("fake-");
+    if (!isSupabaseConfigured || isFakeIdea) {
+      return;
+    }
+
+    try {
+      await updateIdea(
+        idea.id,
+        flag === "isFavorite"
+          ? { is_favorite: nextValue }
+          : { is_pinned: nextValue },
+      );
+    } catch {
+      // The optimistic state is already persisted in localStorage.
+    }
+  }
+
+  function toggleFavorite(idea: Idea) {
+    void toggleIdeaFlag(idea, "isFavorite");
+  }
+
+  function togglePinned(idea: Idea) {
+    void toggleIdeaFlag(idea, "isPinned");
   }
 
   function switchScreen(screenId: ScreenId) {
@@ -664,6 +816,9 @@ export default function Home() {
 
   const monthGroups = storedIdeas.length > 0 ? groupStoredIdeasByMonth(storedIdeas) : fakeMonthGroups;
   const activeMonthLabel = `${currentMonthTag(monthGroups[0]?.month || currentMonthName())} activo`;
+  const visibleIdeas = monthGroups.flatMap((group) => group.ideas);
+  const favoriteCount = visibleIdeas.filter((idea) => idea.isFavorite).length;
+  const pinnedCount = visibleIdeas.filter((idea) => idea.isPinned).length;
 
   return (
     <>
@@ -763,7 +918,14 @@ export default function Home() {
                 <section className="month-section" data-month={group.month} key={group.month}>
                   <h2 className="month-title">{group.month}</h2>
                   <div className="ideas-list">
-                    {group.ideas.map((idea) => <IdeaCard key={idea.id || idea.title} idea={idea} />)}
+                    {group.ideas.map((idea) => (
+                      <IdeaCard
+                        key={idea.id}
+                        idea={idea}
+                        onToggleFavorite={toggleFavorite}
+                        onTogglePinned={togglePinned}
+                      />
+                    ))}
                   </div>
                 </section>
               ))}
@@ -795,7 +957,13 @@ export default function Home() {
                 <span className="habit-icon" aria-hidden="true">{card.icon}</span>
                 <span>
                   <span className="habit-title">{card.title}</span>
-                  <span className="habit-copy">{card.copy}</span>
+                  <span className="habit-copy">
+                    {card.countType === "favorite"
+                      ? `${favoriteCount} ${favoriteCount === 1 ? "idea favorita" : "ideas favoritas"}.`
+                      : card.countType === "pinned"
+                        ? `${pinnedCount} ${pinnedCount === 1 ? "idea fijada" : "ideas fijadas"}.`
+                        : card.copy}
+                  </span>
                 </span>
                 <span className="chevron" aria-hidden="true">›</span>
               </button>
