@@ -28,6 +28,13 @@ type PreparedIdea = {
   title: string;
   text: string;
   summary: string;
+  nextSteps: string[];
+};
+
+type OrganizedIdeaResult = {
+  title: string;
+  summary: string;
+  nextSteps: string[];
 };
 
 type StoredIdea = {
@@ -223,6 +230,43 @@ function summaryFromText(text: string) {
   }
 
   return "Una idea guardada con una forma más clara para poder retomarla después sin esfuerzo.";
+}
+
+function organizeIdeaLocally(text: string): OrganizedIdeaResult {
+  const normalizedText = cleanText(text);
+  const lower = normalizedText.toLowerCase();
+
+  let nextSteps = [
+    "Definir qué resultado concreto debería lograr esta idea.",
+    "Anotar la versión más simple que se podría probar.",
+    "Elegir una primera acción pequeña para empezar.",
+  ];
+
+  if (lower.includes("app") || lower.includes("herramienta") || lower.includes("producto")) {
+    nextSteps = [
+      "Definir el problema principal que resolvería.",
+      "Listar las tres funciones esenciales de la primera versión.",
+      "Crear un prototipo simple para validar el flujo.",
+    ];
+  } else if (lower.includes("reel") || lower.includes("contenido") || lower.includes("video")) {
+    nextSteps = [
+      "Definir la idea central en una sola frase.",
+      "Preparar un guion breve con inicio, desarrollo y cierre.",
+      "Elegir el formato y producir una primera versión.",
+    ];
+  } else if (lower.includes("proyecto") || lower.includes("sistema")) {
+    nextSteps = [
+      "Aclarar el objetivo y el resultado esperado.",
+      "Dividir la idea en etapas pequeñas y concretas.",
+      "Seleccionar la primera etapa para comenzar.",
+    ];
+  }
+
+  return {
+    title: titleFromText(normalizedText),
+    summary: summaryFromText(normalizedText),
+    nextSteps,
+  };
 }
 
 function currentMonthName() {
@@ -685,11 +729,12 @@ export default function Home() {
     if (processingTimer.current) clearTimeout(processingTimer.current);
 
     processingTimer.current = setTimeout(() => {
+      const organizedIdea = organizeIdeaLocally(value);
+
       setPreparedIdea({
         original: value,
-        title: titleFromText(value),
         text: correctedTextFromText(value),
-        summary: summaryFromText(value),
+        ...organizedIdea,
       });
       setIsProcessing(false);
     }, 850);
@@ -885,12 +930,16 @@ export default function Home() {
                     <p className="preview-value">{preparedIdea.title}</p>
                   </div>
                   <div className="preview-item">
-                    <div className="preview-label">✍️ Texto corregido</div>
-                    <p className="preview-value">{preparedIdea.text}</p>
-                  </div>
-                  <div className="preview-item">
                     <div className="preview-label">📝 Resumen</div>
                     <p className="preview-value">{preparedIdea.summary}</p>
+                  </div>
+                  <div className="preview-item">
+                    <div className="preview-label">✓ Próximos pasos</div>
+                    <ol className="preview-steps">
+                      {preparedIdea.nextSteps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
                   </div>
                   <button className={`primary-button ${isPressed ? "pressed" : ""}`} type="button" onClick={saveIdea}>
                     Guardar idea
