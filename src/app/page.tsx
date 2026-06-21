@@ -1,6 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  createIdea,
+  getIdeas,
+  isSupabaseConfigured,
+  type CreateIdeaInput,
+  type Idea as SupabaseIdea,
+} from "@/lib/supabase";
 
 type ScreenId = "homeScreen" | "ideasScreen" | "settingsScreen";
 
@@ -199,6 +206,34 @@ function summaryFromText(text: string) {
 function currentMonthName() {
   const month = new Intl.DateTimeFormat("es", { month: "long", year: "numeric" }).format(new Date());
   return month.charAt(0).toUpperCase() + month.slice(1);
+}
+
+function toStoredIdea(idea: SupabaseIdea): StoredIdea {
+  return {
+    id: idea.id,
+    title: idea.title,
+    originalText: idea.original_text || "",
+    correctedText: idea.corrected_text || "",
+    summary: idea.summary || "",
+    month: idea.month || currentMonthName(),
+    createdAt: idea.created_at,
+    status: idea.status === "Guardada" ? "Guardada" : "Guardada",
+  };
+}
+
+function toSupabaseIdeaInput(idea: StoredIdea): CreateIdeaInput {
+  return {
+    user_id: null,
+    title: idea.title,
+    original_text: idea.originalText,
+    corrected_text: idea.correctedText,
+    summary: idea.summary,
+    month: idea.month,
+    status: idea.status,
+    is_favorite: false,
+    is_pinned: false,
+    created_at: idea.createdAt,
+  };
 }
 
 function currentMonthTag(month: string) {
@@ -462,22 +497,43 @@ export default function Home() {
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     try {
       setShowWelcome(localStorage.getItem("ideapp-welcome-seen") !== "true");
     } catch {
       setShowWelcome(true);
     }
 
-    const loadedIdeas = readStoredIdeas();
-    if (loadedIdeas.length > 0) {
-      setStoredIdeas(loadedIdeas);
-      setTotal(12 + loadedIdeas.length);
-      setToday(3 + loadedIdeas.filter((idea) => new Date(idea.createdAt).toDateString() === new Date().toDateString()).length);
+    async function loadIdeas() {
+      let loadedIdeas: StoredIdea[] = [];
+
+      if (isSupabaseConfigured) {
+        try {
+          const supabaseIdeas = await getIdeas();
+          loadedIdeas = supabaseIdeas.map(toStoredIdea);
+        } catch {
+          loadedIdeas = readStoredIdeas();
+        }
+      } else {
+        loadedIdeas = readStoredIdeas();
+      }
+
+      if (!isMounted) return;
+
+      if (loadedIdeas.length > 0) {
+        setStoredIdeas(loadedIdeas);
+        setTotal(12 + loadedIdeas.length);
+        setToday(3 + loadedIdeas.filter((idea) => new Date(idea.createdAt).toDateString() === new Date().toDateString()).length);
+      }
     }
+
+    void loadIdeas();
 
     setHasCheckedWelcome(true);
 
     return () => {
+      isMounted = false;
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       if (processingTimer.current) clearTimeout(processingTimer.current);
     };
@@ -529,7 +585,7 @@ export default function Home() {
     }, 850);
   }
 
-  function saveIdea() {
+  async function saveIdea() {
     if (!preparedIdea) {
       organizeIdea();
       return;
@@ -549,9 +605,23 @@ export default function Home() {
       status: "Guardada",
     };
 
+    let ideaToDisplay = newIdea;
+    let shouldUseLocalStorage = !isSupabaseConfigured;
+
+    if (isSupabaseConfigured) {
+      try {
+        const createdIdea = await createIdea(toSupabaseIdeaInput(newIdea));
+        ideaToDisplay = toStoredIdea(createdIdea);
+      } catch {
+        shouldUseLocalStorage = true;
+      }
+    }
+
     setStoredIdeas((ideas) => {
-      const nextIdeas = [newIdea, ...ideas];
-      writeStoredIdeas(nextIdeas);
+      const nextIdeas = [ideaToDisplay, ...ideas];
+      if (shouldUseLocalStorage) {
+        writeStoredIdeas(nextIdeas);
+      }
       return nextIdeas;
     });
     setInput("");
