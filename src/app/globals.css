@@ -690,6 +690,70 @@ textarea:focus {
   margin-top: 22px;
 }
 
+.memory-section {
+  animation: cardIn 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.memory-card {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px;
+  border: 1px solid rgba(88, 204, 2, 0.16);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fff3 100%);
+  box-shadow: var(--hairline), 0 10px 24px rgba(38, 50, 29, 0.06);
+}
+
+.memory-card > div {
+  min-width: 0;
+}
+
+.memory-card h3 {
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+.memory-card p {
+  display: -webkit-box;
+  margin-top: 5px;
+  overflow: hidden;
+  color: #5f6958;
+  font-size: 13px;
+  line-height: 1.42;
+  font-weight: 680;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.memory-card span {
+  display: block;
+  margin-top: 8px;
+  color: #899382;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.memory-card button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 14px;
+  background: var(--green-soft);
+  color: #317a02;
+  font-size: 12px;
+  font-weight: 950;
+  box-shadow: 0 3px 0 rgba(67, 163, 0, 0.2);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease;
+}
+
+.memory-card button:active {
+  transform: translateY(2px) scale(0.98);
+  box-shadow: 0 1px 0 rgba(67, 163, 0, 0.2);
+}
+
 .section-head {
   display: flex;
   align-items: center;
@@ -795,6 +859,21 @@ textarea:focus {
 .idea-card.removing {
   pointer-events: none;
   animation: ideaCardOut 220ms ease forwards;
+}
+
+.idea-card.highlighted {
+  animation: rememberedIdeaHighlight 1.8s ease;
+}
+
+@keyframes rememberedIdeaHighlight {
+  0%, 100% {
+    border-color: rgba(230, 233, 222, 0.94);
+    box-shadow: var(--hairline), 0 8px 20px rgba(38, 50, 29, 0.052);
+  }
+  24%, 72% {
+    border-color: rgba(88, 204, 2, 0.5);
+    box-shadow: var(--hairline), 0 12px 28px rgba(67, 163, 0, 0.13), 0 0 0 4px rgba(88, 204, 2, 0.07);
+  }
 }
 
 @keyframes ideaCardOut {

@@ -6,10 +6,16 @@ export const metadata: Metadata = {
   title: "Ideapp",
   description: "Captura ideas rápidas antes de olvidarlas.",
   manifest: "/manifest.json",
+  formatDetection: {
+    telephone: false,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Ideapp",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
   },
   icons: {
     icon: [

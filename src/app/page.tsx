@@ -307,6 +307,20 @@ function formatIdeaTime(createdAt: string) {
   return isToday ? "Ahora" : currentMonthTag(currentMonthName());
 }
 
+function daysSinceIdeaWasSaved(createdAt: string) {
+  const createdTime = new Date(createdAt).getTime();
+  if (Number.isNaN(createdTime)) return null;
+
+  const elapsedDays = Math.floor((Date.now() - createdTime) / (1000 * 60 * 60 * 24));
+  return elapsedDays > 7 ? elapsedDays : null;
+}
+
+function findIdeaToRemember(ideas: StoredIdea[]) {
+  return ideas
+    .filter((idea) => !idea.isPinned && daysSinceIdeaWasSaved(idea.createdAt) !== null)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
+}
+
 function isStoredIdea(value: unknown): value is StoredIdea {
   if (!value || typeof value !== "object") return false;
 
@@ -464,15 +478,20 @@ function IdeaCard({
   onTogglePinned,
   onRequestDelete,
   isDeleting,
+  isHighlighted,
 }: {
   idea: Idea;
   onToggleFavorite: (idea: Idea) => void;
   onTogglePinned: (idea: Idea) => void;
   onRequestDelete: (idea: Idea) => void;
   isDeleting: boolean;
+  isHighlighted: boolean;
 }) {
   return (
-    <article className={`idea-card ${isDeleting ? "removing" : ""}`}>
+    <article
+      className={`idea-card ${isDeleting ? "removing" : ""} ${isHighlighted ? "highlighted" : ""}`}
+      id={`idea-${idea.id}`}
+    >
       <div className="idea-emoji" aria-hidden="true">{idea.emoji}</div>
       <div className="idea-content">
         <div className="idea-topline">
@@ -672,8 +691,10 @@ export default function Home() {
   const [isWelcomeExiting, setIsWelcomeExiting] = useState(false);
   const [ideaPendingDelete, setIdeaPendingDelete] = useState<Idea | null>(null);
   const [deletingIdeaId, setDeletingIdeaId] = useState<string | null>(null);
+  const [highlightedIdeaId, setHighlightedIdeaId] = useState<string | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -731,6 +752,7 @@ export default function Home() {
       isMounted = false;
       if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
       if (processingTimer.current) clearTimeout(processingTimer.current);
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
     };
   }, []);
 
@@ -937,6 +959,16 @@ export default function Home() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function reviewRememberedIdea(ideaId: string) {
+    setHighlightedIdeaId(ideaId);
+    if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    highlightTimer.current = setTimeout(() => setHighlightedIdeaId(null), 1800);
+
+    requestAnimationFrame(() => {
+      document.getElementById(`idea-${ideaId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
+
   function updateInput(value: string) {
     setInput(value);
     if (preparedIdea) resetPreview();
@@ -964,6 +996,9 @@ export default function Home() {
   }
 
   const monthGroups = storedIdeas.length > 0 ? groupStoredIdeasByMonth(storedIdeas) : fakeMonthGroups;
+  const sourceIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+  const rememberedIdea = findIdeaToRemember(sourceIdeas);
+  const rememberedIdeaAge = rememberedIdea ? daysSinceIdeaWasSaved(rememberedIdea.createdAt) : null;
   const activeMonthLabel = `${currentMonthTag(monthGroups[0]?.month || currentMonthName())} activo`;
   const visibleIdeas = monthGroups.flatMap((group) => group.ideas);
   const favoriteCount = visibleIdeas.filter((idea) => idea.isFavorite).length;
@@ -1052,6 +1087,24 @@ export default function Home() {
             </div>
           </section>
 
+          {rememberedIdea && rememberedIdeaAge !== null && (
+            <section className="section memory-section" aria-labelledby="memoryTitle">
+              <div className="section-head">
+                <h2 className="section-title" id="memoryTitle">💡 Te puede servir hoy</h2>
+              </div>
+              <article className="memory-card">
+                <div>
+                  <h3>{rememberedIdea.title}</h3>
+                  <p>{rememberedIdea.summary}</p>
+                  <span>Guardada hace {rememberedIdeaAge} días</span>
+                </div>
+                <button type="button" onClick={() => reviewRememberedIdea(rememberedIdea.id)}>
+                  Revisar idea
+                </button>
+              </article>
+            </section>
+          )}
+
           <section className="section" aria-labelledby="timelineTitle">
             <div className="section-head">
               <h2 className="section-title" id="timelineTitle">Ideas por mes</h2>
@@ -1071,6 +1124,7 @@ export default function Home() {
                         onTogglePinned={togglePinned}
                         onRequestDelete={requestDeleteIdea}
                         isDeleting={deletingIdeaId === idea.id}
+                        isHighlighted={highlightedIdeaId === idea.id}
                       />
                     ))}
                   </div>
