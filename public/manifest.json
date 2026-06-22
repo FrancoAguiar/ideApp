@@ -11,7 +11,7 @@
   "dir": "ltr",
   "categories": ["productivity", "lifestyle"],
   "background_color": "#f8f5ec",
-  "theme_color": "#58cc02",
+  "theme_color": "#f8f5ec",
   "icons": [
     {
       "src": "/icons/icon-192.png",

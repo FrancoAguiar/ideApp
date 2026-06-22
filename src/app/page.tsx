@@ -69,7 +69,7 @@ const DELETED_IDEAS_STORAGE_KEY = "ideapp_deleted_idea_ids";
 const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: string }> = {
   homeScreen: {
     title: "👋 Hola Fran",
-    subtitle: "No pierdas ninguna idea.",
+    subtitle: "Capturá eso antes de que se pierda.",
     eyebrow: "3 ideas guardadas hoy",
   },
   ideasScreen: {
@@ -530,6 +530,7 @@ function IdeaCard({
   onRequestDelete,
   isDeleting,
   isHighlighted,
+  isFeatured = false,
   elementId,
 }: {
   idea: Idea;
@@ -539,11 +540,12 @@ function IdeaCard({
   onRequestDelete: (idea: Idea) => void;
   isDeleting: boolean;
   isHighlighted: boolean;
+  isFeatured?: boolean;
   elementId?: string;
 }) {
   return (
     <article
-      className={`idea-card ${isDeleting ? "removing" : ""} ${isHighlighted ? "highlighted" : ""}`}
+      className={`idea-card ${isFeatured ? "featured" : ""} ${isDeleting ? "removing" : ""} ${isHighlighted ? "highlighted" : ""}`}
       id={elementId}
     >
       <div className="idea-emoji" aria-hidden="true">{idea.emoji || <LightbulbIcon />}</div>
@@ -738,8 +740,8 @@ function WelcomeScreen({ onEnter, isExiting }: { onEnter: () => void; isExiting:
 export default function Home() {
   const [activeScreen, setActiveScreen] = useState<ScreenId>("homeScreen");
   const [storedIdeas, setStoredIdeas] = useState<StoredIdea[]>([]);
-  const [total, setTotal] = useState(12);
-  const [today, setToday] = useState(3);
+  const [, setTotal] = useState(12);
+  const [, setToday] = useState(3);
   const [input, setInput] = useState("");
   const [preparedIdea, setPreparedIdea] = useState<PreparedIdea | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -1103,7 +1105,6 @@ export default function Home() {
   const sourceIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
   const rememberedIdea = findIdeaToRemember(sourceIdeas);
   const rememberedIdeaAge = rememberedIdea ? daysSinceIdeaWasSaved(rememberedIdea.createdAt) : null;
-  const activeMonthLabel = `${currentMonthTag(monthGroups[0]?.month || currentMonthName())} activo`;
   const visibleIdeas = monthGroups.flatMap((group) => group.ideas);
   const favoriteCount = visibleIdeas.filter((idea) => idea.isFavorite).length;
   const pinnedCount = visibleIdeas.filter((idea) => idea.isPinned).length;
@@ -1119,30 +1120,20 @@ export default function Home() {
   return (
     <>
       <main className="app-shell" aria-label="IdeApp">
-        <header className="topbar">
+        <header className={`topbar ${activeScreen === "homeScreen" ? "home" : ""}`}>
           <div>
-            <div className="eyebrow">{activeScreen === "homeScreen" ? `${today} ideas guardadas hoy` : meta.eyebrow}</div>
+            {activeScreen !== "homeScreen" && <div className="eyebrow">{meta.eyebrow}</div>}
             <h1>{meta.title}</h1>
             <p className="subtitle">{meta.subtitle}</p>
           </div>
           <div className="avatar" aria-hidden="true">💡</div>
         </header>
 
-        <section className="progress-row" aria-label="Progreso">
-          <div className="stat-pill">
-            <span className="stat-icon" aria-hidden="true">🔥</span>
-            <span className="stat-text">3 días capturando ideas</span>
-          </div>
-          <div className="stat-pill">
-            <span className="stat-icon" aria-hidden="true">💡</span>
-            <span className="stat-text"><span>{total}</span> ideas guardadas</span>
-          </div>
-        </section>
-
         <section className={`screen ${activeScreen === "homeScreen" ? "active" : ""}`}>
           <section className={`capture-card ${isShaking ? "shake" : ""}`} onAnimationEnd={() => setIsShaking(false)}>
             <div className="capture-head">
-              <h2>¿Qué idea apareció?</h2>
+              <span className="capture-label">Captura rápida</span>
+              <h2>¿Qué apareció?</h2>
             </div>
 
             <div className="idea-input-wrap">
@@ -1155,7 +1146,7 @@ export default function Home() {
                     else organizeIdea();
                   }
                 }}
-                placeholder="Escribila aunque esté desordenada..."
+                placeholder="Escribila aunque esté desordenada…"
                 aria-label="Escribir idea"
               />
               <span className="spark" aria-hidden="true">✨</span>
@@ -1199,35 +1190,38 @@ export default function Home() {
           </section>
 
           {rememberedIdea && rememberedIdeaAge !== null && (
-            <section className="section memory-section" aria-labelledby="memoryTitle">
-              <div className="section-head">
-                <h2 className="section-title" id="memoryTitle">💡 Te puede servir hoy</h2>
+            <section className="memory-section" aria-labelledby="memoryTitle">
+              <div className="memory-intro">
+                <div>
+                  <h2 className="memory-title" id="memoryTitle">💡 Te puede servir hoy</h2>
+                  <p>Una idea antigua que quizás vale retomar.</p>
+                </div>
+                <span>Hace {rememberedIdeaAge} días</span>
               </div>
               <article className="memory-card">
                 <div>
                   <h3>{rememberedIdea.title}</h3>
                   <p>{rememberedIdea.summary}</p>
-                  <span>Guardada hace {rememberedIdeaAge} días</span>
                 </div>
                 <button type="button" onClick={() => reviewRememberedIdea(rememberedIdea.id)}>
-                  Revisar idea
+                  Revisar
                 </button>
               </article>
             </section>
           )}
 
-          <section className="section" aria-labelledby="timelineTitle">
+          <section className="section home-ideas-section" aria-labelledby="timelineTitle">
             <div className="section-head">
-              <h2 className="section-title" id="timelineTitle">Ideas por mes</h2>
-              <span className="count-badge">{activeMonthLabel}</span>
+              <h2 className="section-title" id="timelineTitle">Tus ideas recientes</h2>
+              <span className="recent-month">{monthGroups[0]?.month || currentMonthName()}</span>
             </div>
 
             <div>
-              {monthGroups.map((group) => (
-                <section className="month-section" data-month={group.month} key={group.month}>
-                  <h2 className="month-title">{group.month}</h2>
+              {monthGroups.map((group, groupIndex) => (
+                <section className={`month-section ${groupIndex === 0 ? "current-month" : ""}`} data-month={group.month} key={group.month}>
+                  {groupIndex > 0 && <h2 className="month-title">{group.month}</h2>}
                   <div className="ideas-list">
-                    {group.ideas.map((idea) => (
+                    {group.ideas.map((idea, ideaIndex) => (
                       <IdeaCard
                         key={idea.id}
                         idea={idea}
@@ -1237,6 +1231,7 @@ export default function Home() {
                         onRequestDelete={requestDeleteIdea}
                         isDeleting={deletingIdeaId === idea.id}
                         isHighlighted={highlightedIdeaId === idea.id}
+                        isFeatured={groupIndex === 0 && ideaIndex === 0}
                         elementId={`idea-${idea.id}`}
                       />
                     ))}
@@ -1246,12 +1241,6 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="section">
-            <div className="reminder-card">
-              <div className="reminder-icon" aria-hidden="true">⏰</div>
-              <p>IdeApp recupera ideas antiguas para que vuelvan a servir cuando más las necesitás.</p>
-            </div>
-          </section>
         </section>
 
         <section className={`screen ${activeScreen === "ideasScreen" ? "active" : ""}`}>
