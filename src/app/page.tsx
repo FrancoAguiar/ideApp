@@ -252,6 +252,13 @@ function organizeIdeaLocally(text: string): OrganizedIdeaResult {
   };
 }
 
+function isOrganizedIdeaResult(value: unknown): value is OrganizedIdeaResult {
+  if (!value || typeof value !== "object") return false;
+
+  const result = value as Record<string, unknown>;
+  return typeof result.title === "string" && result.title.trim() !== "" && typeof result.summary === "string" && result.summary.trim() !== "";
+}
+
 function currentMonthName() {
   const month = new Intl.DateTimeFormat("es", { month: "long", year: "numeric" }).format(new Date());
   return month.charAt(0).toUpperCase() + month.slice(1);
@@ -747,7 +754,7 @@ export default function Home() {
     showFeedback(message);
   }
 
-  function organizeIdea() {
+  async function organizeIdea() {
     const value = cleanText(input);
     setIsPressed(true);
     setTimeout(() => setIsPressed(false), 130);
@@ -762,16 +769,40 @@ export default function Home() {
     setIsProcessing(true);
     if (processingTimer.current) clearTimeout(processingTimer.current);
 
-    processingTimer.current = setTimeout(() => {
-      const organizedIdea = organizeIdeaLocally(value);
+    const minimumProcessingTime = new Promise<void>((resolve) => {
+      processingTimer.current = setTimeout(resolve, 850);
+    });
 
+    try {
+      const response = await fetch("/api/organize-idea", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: value }),
+      });
+
+      if (!response.ok) throw new Error(`Idea organization failed with status ${response.status}.`);
+
+      const organizedIdea: unknown = await response.json();
+      if (!isOrganizedIdeaResult(organizedIdea)) throw new Error("Idea organization returned invalid data.");
+
+      await minimumProcessingTime;
+      setPreparedIdea({
+        original: value,
+        text: organizedIdea.summary,
+        ...organizedIdea,
+      });
+    } catch (error) {
+      console.error("Gemini organization unavailable; using local fallback.", error);
+      await minimumProcessingTime;
+      const organizedIdea = organizeIdeaLocally(value);
       setPreparedIdea({
         original: value,
         text: correctedTextFromText(value),
         ...organizedIdea,
       });
+    } finally {
       setIsProcessing(false);
-    }, 850);
+    }
   }
 
   async function saveIdea() {
