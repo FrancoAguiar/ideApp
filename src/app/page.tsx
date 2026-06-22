@@ -1143,7 +1143,6 @@ export default function Home() {
           <section className={`capture-card ${isShaking ? "shake" : ""}`} onAnimationEnd={() => setIsShaking(false)}>
             <div className="capture-head">
               <h2>¿Qué idea apareció?</h2>
-              <span className="ai-soon">✨ Próximamente: corrección automática con IA</span>
             </div>
 
             <div className="idea-input-wrap">
@@ -1250,7 +1249,7 @@ export default function Home() {
           <section className="section">
             <div className="reminder-card">
               <div className="reminder-icon" aria-hidden="true">⏰</div>
-              <p>Más adelante IdeApp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+              <p>IdeApp recupera ideas antiguas para que vuelvan a servir cuando más las necesitás.</p>
             </div>
           </section>
         </section>
