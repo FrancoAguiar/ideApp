@@ -1013,6 +1013,76 @@ textarea:focus {
   border-color: rgba(255, 107, 95, 0.16);
 }
 
+.ideas-search-wrap {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.ideas-search-wrap > span {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: #7e8977;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ideas-search-wrap input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 16px 0 46px;
+  border: 1px solid rgba(224, 229, 215, 0.96);
+  border-radius: 18px;
+  outline: 0;
+  appearance: none;
+  color: var(--ink);
+  background: linear-gradient(180deg, #ffffff 0%, #fdfefa 100%);
+  box-shadow: var(--hairline), 0 7px 18px rgba(38, 50, 29, 0.045);
+  font-size: 15px;
+  font-weight: 720;
+  transition: border-color 200ms ease, box-shadow 200ms ease, background 200ms ease;
+}
+
+.ideas-search-wrap input::placeholder {
+  color: #9aa393;
+}
+
+.ideas-search-wrap input:focus {
+  border-color: #94df62;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(88, 204, 2, 0.08), 0 9px 22px rgba(38, 50, 29, 0.055);
+}
+
+.search-results {
+  animation: cardIn 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.search-empty {
+  padding: 28px 20px;
+  border: 1px solid rgba(230, 233, 222, 0.94);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff, #fdfefa);
+  box-shadow: var(--hairline), var(--soft-shadow);
+  text-align: center;
+}
+
+.search-empty h3 {
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+.search-empty p {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
 .delete-dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -1033,6 +1103,111 @@ textarea:focus {
   box-shadow: var(--hairline), 0 24px 60px rgba(32, 37, 31, 0.2);
   text-align: center;
   animation: deleteDialogIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.edit-dialog {
+  width: min(100%, 390px);
+  padding: 22px;
+  border: 1px solid rgba(230, 233, 222, 0.96);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff, #fdfefa);
+  box-shadow: var(--hairline), 0 24px 60px rgba(32, 37, 31, 0.2);
+  animation: deleteDialogIn 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.edit-dialog h2 {
+  margin-bottom: 18px;
+  color: var(--ink);
+  font-size: 21px;
+  line-height: 1.08;
+  font-weight: 950;
+}
+
+.edit-dialog label {
+  display: block;
+}
+
+.edit-dialog label + label {
+  margin-top: 14px;
+}
+
+.edit-dialog label > span {
+  display: block;
+  margin: 0 0 7px 2px;
+  color: #65705e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.edit-dialog input,
+.edit-dialog textarea {
+  width: 100%;
+  border: 1.5px solid #e6eadf;
+  border-radius: 16px;
+  outline: 0;
+  color: var(--ink);
+  background: #fbfcf8;
+  font-size: 15px;
+  line-height: 1.42;
+  font-weight: 680;
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.edit-dialog input {
+  min-height: 47px;
+  padding: 0 13px;
+}
+
+.edit-dialog textarea {
+  min-height: 104px;
+  padding: 12px 13px;
+  resize: vertical;
+}
+
+.edit-dialog input:focus,
+.edit-dialog textarea:focus {
+  border-color: #94df62;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(88, 204, 2, 0.08);
+}
+
+.edit-dialog-actions {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 9px;
+  margin-top: 20px;
+}
+
+.edit-cancel,
+.edit-save {
+  min-height: 46px;
+  border-radius: 15px;
+  font-size: 14px;
+  font-weight: 900;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.edit-cancel {
+  color: #4d5b44;
+  background: #f6f8f1;
+  box-shadow: 0 4px 0 #dfe6d5;
+}
+
+.edit-save {
+  color: #ffffff;
+  background: var(--green);
+  box-shadow: 0 4px 0 var(--green-dark);
+}
+
+.edit-save:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.edit-cancel:active,
+.edit-save:not(:disabled):active {
+  transform: translateY(3px) scale(0.98);
+  box-shadow: 0 1px 0 rgba(32, 37, 31, 0.16);
 }
 
 .delete-dialog h2 {

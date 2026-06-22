@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  applicationName: "Ideapp",
-  title: "Ideapp",
+  applicationName: "IdeApp",
+  title: "IdeApp",
   description: "Captura ideas rápidas antes de olvidarlas.",
   manifest: "/manifest.json",
   formatDetection: {
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Ideapp",
+    title: "IdeApp",
   },
   other: {
     "apple-mobile-web-app-capable": "yes",

@@ -29,11 +29,13 @@ type PreparedIdea = {
   title: string;
   text: string;
   summary: string;
+  category: string;
 };
 
 type OrganizedIdeaResult = {
   title: string;
   summary: string;
+  category: string;
 };
 
 type StoredIdea = {
@@ -42,6 +44,7 @@ type StoredIdea = {
   originalText: string;
   correctedText: string;
   summary: string;
+  category: string;
   month: string;
   createdAt: string;
   status: "Guardada";
@@ -52,6 +55,12 @@ type StoredIdea = {
 type MonthGroup = {
   month: string;
   ideas: Idea[];
+};
+
+type EditIdeaDraft = {
+  id: string;
+  title: string;
+  summary: string;
 };
 
 const IDEAS_STORAGE_KEY = "ideapp_ideas";
@@ -71,7 +80,7 @@ const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: s
   settingsScreen: {
     title: "Ajustes",
     subtitle: "Todo tranquilo y en orden.",
-    eyebrow: "Ideapp lista para crecer",
+    eyebrow: "IdeApp lista para crecer",
   },
 };
 
@@ -81,7 +90,7 @@ const initialJuneIdeas: Idea[] = [
     emoji: "📱",
     title: "App para recordar ideas",
     copy: "Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.",
-    tag: "Junio",
+    tag: "App",
     time: "Hace 4 min",
     isFavorite: false,
     isPinned: false,
@@ -91,7 +100,7 @@ const initialJuneIdeas: Idea[] = [
     emoji: "🎬",
     title: "Reel para diseñadores",
     copy: "Un video corto sobre cómo las buenas ideas se pierden cuando no se capturan a tiempo.",
-    tag: "Junio",
+    tag: "Contenido",
     time: "Hoy",
     isFavorite: false,
     isPinned: false,
@@ -101,7 +110,7 @@ const initialJuneIdeas: Idea[] = [
     emoji: "🧭",
     title: "Sistema para organizar proyectos",
     copy: "Un método simple para transformar ideas sueltas en próximos pasos concretos.",
-    tag: "Junio",
+    tag: "Diseño",
     time: "Ayer",
     isFavorite: false,
     isPinned: false,
@@ -114,7 +123,7 @@ const mayIdeas: Idea[] = [
     emoji: "🧩",
     title: "Producto digital para freelancers",
     copy: "Una plantilla para convertir servicios repetidos en productos digitales simples.",
-    tag: "Mayo",
+    tag: "Negocio",
     time: "Mayo",
     isFavorite: false,
     isPinned: false,
@@ -124,7 +133,7 @@ const mayIdeas: Idea[] = [
     emoji: "💬",
     title: "Automatización de mensajes",
     copy: "Un flujo amable para responder consultas frecuentes sin perder el tono humano.",
-    tag: "Mayo",
+    tag: "Automatización",
     time: "Mayo",
     isFavorite: false,
     isPinned: false,
@@ -179,7 +188,7 @@ const habitCards = [
 
 const settingsRows = [
   { icon: "user", title: "Perfil", copy: "Nombre, saludo y datos básicos." },
-  { icon: "bell", title: "Notificaciones", copy: "Avisos suaves para volver a Ideapp." },
+  { icon: "bell", title: "Notificaciones", copy: "Avisos suaves para volver a IdeApp." },
   { icon: "clock", title: "Recordatorios de ideas", copy: "Recuperar ideas cuando puedan servir." },
   { icon: "palette", title: "Apariencia", copy: "Color, estilo y sensación visual." },
   { icon: "export", title: "Exportar ideas", copy: "Llevar tus ideas a otro lugar." },
@@ -223,6 +232,7 @@ function organizeIdeaLocally(text: string): OrganizedIdeaResult {
     return {
       title: "Generador de Fotos Divertidas para Perros",
       summary: "Transforma fotos de perros en imágenes creativas y humorísticas.",
+      category: "Random",
     };
   }
 
@@ -230,6 +240,7 @@ function organizeIdeaLocally(text: string): OrganizedIdeaResult {
     return {
       title: "Aplicación para Recordar Ideas",
       summary: "Captura ideas rápidamente, las organiza y permite recuperarlas cuando vuelvan a ser útiles.",
+      category: "Random",
     };
   }
 
@@ -237,6 +248,7 @@ function organizeIdeaLocally(text: string): OrganizedIdeaResult {
     return {
       title: "Contenido Breve para Compartir",
       summary: "Convierte una idea central en contenido claro, atractivo y fácil de publicar.",
+      category: "Random",
     };
   }
 
@@ -249,6 +261,7 @@ function organizeIdeaLocally(text: string): OrganizedIdeaResult {
   return {
     title: title ? title.charAt(0).toUpperCase() + title.slice(1) : "Idea Organizada",
     summary: limitWords(correctedText, 20),
+    category: "Random",
   };
 }
 
@@ -256,7 +269,14 @@ function isOrganizedIdeaResult(value: unknown): value is OrganizedIdeaResult {
   if (!value || typeof value !== "object") return false;
 
   const result = value as Record<string, unknown>;
-  return typeof result.title === "string" && result.title.trim() !== "" && typeof result.summary === "string" && result.summary.trim() !== "";
+  return (
+    typeof result.title === "string" &&
+    result.title.trim() !== "" &&
+    typeof result.summary === "string" &&
+    result.summary.trim() !== "" &&
+    typeof result.category === "string" &&
+    result.category.trim() !== ""
+  );
 }
 
 function currentMonthName() {
@@ -271,6 +291,7 @@ function toStoredIdea(idea: SupabaseIdea): StoredIdea {
     originalText: idea.original_text || "",
     correctedText: idea.corrected_text || "",
     summary: idea.summary || "",
+    category: idea.category || "Random",
     month: idea.month || currentMonthName(),
     createdAt: idea.created_at,
     status: idea.status === "Guardada" ? "Guardada" : "Guardada",
@@ -286,6 +307,7 @@ function toSupabaseIdeaInput(idea: StoredIdea): CreateIdeaInput {
     original_text: idea.originalText,
     corrected_text: idea.correctedText,
     summary: idea.summary,
+    category: idea.category,
     month: idea.month,
     status: idea.status,
     is_favorite: idea.isFavorite,
@@ -321,6 +343,14 @@ function findIdeaToRemember(ideas: StoredIdea[]) {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null;
 }
 
+function normalizeSearchText(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 function isStoredIdea(value: unknown): value is StoredIdea {
   if (!value || typeof value !== "object") return false;
 
@@ -347,6 +377,7 @@ function readStoredIdeas() {
 
     return parsedIdeas.filter(isStoredIdea).map((idea) => ({
       ...idea,
+      category: typeof idea.category === "string" && idea.category.trim() ? idea.category : "Random",
       isFavorite: idea.isFavorite ?? false,
       isPinned: idea.isPinned ?? false,
     }));
@@ -388,10 +419,10 @@ function rememberDeletedIdeaId(id: string) {
 function toDisplayIdea(idea: StoredIdea): Idea {
   return {
     id: idea.id,
-    emoji: "🌱",
+    emoji: "",
     title: idea.title,
     copy: idea.summary,
-    tag: currentMonthTag(idea.month),
+    tag: idea.category || "Random",
     time: formatIdeaTime(idea.createdAt),
     isFavorite: idea.isFavorite,
     isPinned: idea.isPinned,
@@ -435,6 +466,7 @@ function fakeIdeasAsStoredIdeas() {
       originalText: idea.copy,
       correctedText: idea.copy,
       summary: idea.copy,
+      category: idea.tag || "Random",
       month: group.month,
       createdAt: new Date(Date.UTC(2026, 5 - groupIndex, 10 - ideaIndex, 12)).toISOString(),
       status: "Guardada" as const,
@@ -472,27 +504,49 @@ function TrashIcon() {
   );
 }
 
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m14.2 5.1 4.7 4.7" />
+      <path d="m16.6 2.7 4.7 4.7L9.1 19.6l-5.8 1.1 1.1-5.8L16.6 2.7Z" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="10.8" cy="10.8" r="6.8" />
+      <path d="m16 16 4.2 4.2" />
+    </svg>
+  );
+}
+
 function IdeaCard({
   idea,
   onToggleFavorite,
   onTogglePinned,
+  onRequestEdit,
   onRequestDelete,
   isDeleting,
   isHighlighted,
+  elementId,
 }: {
   idea: Idea;
   onToggleFavorite: (idea: Idea) => void;
   onTogglePinned: (idea: Idea) => void;
+  onRequestEdit: (idea: Idea) => void;
   onRequestDelete: (idea: Idea) => void;
   isDeleting: boolean;
   isHighlighted: boolean;
+  elementId?: string;
 }) {
   return (
     <article
       className={`idea-card ${isDeleting ? "removing" : ""} ${isHighlighted ? "highlighted" : ""}`}
-      id={`idea-${idea.id}`}
+      id={elementId}
     >
-      <div className="idea-emoji" aria-hidden="true">{idea.emoji}</div>
+      <div className="idea-emoji" aria-hidden="true">{idea.emoji || <LightbulbIcon />}</div>
       <div className="idea-content">
         <div className="idea-topline">
           <h3 className="idea-title">{idea.title}</h3>
@@ -503,6 +557,14 @@ function IdeaCard({
           <span className="tag">{idea.tag}</span>
           <span className="saved">Guardada</span>
           <span className="idea-actions">
+            <button
+              className="idea-action"
+              type="button"
+              aria-label="Editar idea"
+              onClick={() => onRequestEdit(idea)}
+            >
+              <EditIcon />
+            </button>
             <button
               className={`idea-action ${idea.isFavorite ? "active" : ""}`}
               type="button"
@@ -656,14 +718,14 @@ function SettingIcon({ name }: { name: string }) {
 
 function WelcomeScreen({ onEnter, isExiting }: { onEnter: () => void; isExiting: boolean }) {
   return (
-    <section className={`welcome-screen ${isExiting ? "exiting" : ""}`} aria-label="Bienvenida a Ideapp">
+    <section className={`welcome-screen ${isExiting ? "exiting" : ""}`} aria-label="Bienvenida a IdeApp">
       <div className="welcome-hero" aria-hidden="true">
         <img src="/images/welcome-hero.png" alt="" />
       </div>
 
       <div className="welcome-content">
         <h1>Nunca pierdas una buena idea.</h1>
-        <p>Las mejores ideas aparecen cuando menos lo esperás. Ideapp las guarda antes de que se pierdan.</p>
+        <p>Las mejores ideas aparecen cuando menos lo esperás. IdeApp las guarda antes de que se pierdan.</p>
         <div className="welcome-actions">
           <button className="welcome-primary" type="button" onClick={onEnter}>Empezar</button>
           <button className="welcome-secondary" type="button" onClick={onEnter}>Omitir</button>
@@ -692,6 +754,8 @@ export default function Home() {
   const [ideaPendingDelete, setIdeaPendingDelete] = useState<Idea | null>(null);
   const [deletingIdeaId, setDeletingIdeaId] = useState<string | null>(null);
   const [highlightedIdeaId, setHighlightedIdeaId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editDraft, setEditDraft] = useState<EditIdeaDraft | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const processingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -842,6 +906,7 @@ export default function Home() {
       originalText: preparedIdea.original,
       correctedText: preparedIdea.text,
       summary: preparedIdea.summary,
+      category: preparedIdea.category,
       month: currentMonthName(),
       createdAt: new Date().toISOString(),
       status: "Guardada",
@@ -917,6 +982,45 @@ export default function Home() {
 
   function requestDeleteIdea(idea: Idea) {
     setIdeaPendingDelete(idea);
+  }
+
+  function requestEditIdea(idea: Idea) {
+    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const storedIdea = baseIdeas.find((item) => item.id === idea.id);
+    if (!storedIdea) return;
+
+    setEditDraft({
+      id: storedIdea.id,
+      title: storedIdea.title,
+      summary: storedIdea.summary,
+    });
+  }
+
+  function cancelEditIdea() {
+    setEditDraft(null);
+  }
+
+  function saveEditedIdea() {
+    if (!editDraft) return;
+
+    const title = cleanText(editDraft.title);
+    const summary = cleanText(editDraft.summary);
+    if (!title || !summary) return;
+
+    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const nextIdeas = baseIdeas.map((idea) =>
+      idea.id === editDraft.id ? { ...idea, title, summary } : idea,
+    );
+
+    setStoredIdeas(nextIdeas);
+    writeStoredIdeas(nextIdeas);
+    setEditDraft(null);
+
+    if (!isSupabaseConfigured || editDraft.id.startsWith("fake-")) return;
+
+    void updateIdea(editDraft.id, { title, summary }).catch((error) => {
+      console.error("Failed to update idea in Supabase; local changes were preserved.", error);
+    });
   }
 
   function cancelDeleteIdea() {
@@ -1003,10 +1107,18 @@ export default function Home() {
   const visibleIdeas = monthGroups.flatMap((group) => group.ideas);
   const favoriteCount = visibleIdeas.filter((idea) => idea.isFavorite).length;
   const pinnedCount = visibleIdeas.filter((idea) => idea.isPinned).length;
+  const normalizedSearchQuery = normalizeSearchText(searchQuery);
+  const searchResults = normalizedSearchQuery
+    ? sourceIdeas.filter((idea) =>
+        normalizeSearchText(
+          [idea.title, idea.summary, idea.originalText, idea.correctedText, idea.category].join(" "),
+        ).includes(normalizedSearchQuery),
+      )
+    : [];
 
   return (
     <>
-      <main className="app-shell" aria-label="Ideapp">
+      <main className="app-shell" aria-label="IdeApp">
         <header className="topbar">
           <div>
             <div className="eyebrow">{activeScreen === "homeScreen" ? `${today} ideas guardadas hoy` : meta.eyebrow}</div>
@@ -1122,9 +1234,11 @@ export default function Home() {
                         idea={idea}
                         onToggleFavorite={toggleFavorite}
                         onTogglePinned={togglePinned}
+                        onRequestEdit={requestEditIdea}
                         onRequestDelete={requestDeleteIdea}
                         isDeleting={deletingIdeaId === idea.id}
                         isHighlighted={highlightedIdeaId === idea.id}
+                        elementId={`idea-${idea.id}`}
                       />
                     ))}
                   </div>
@@ -1136,12 +1250,57 @@ export default function Home() {
           <section className="section">
             <div className="reminder-card">
               <div className="reminder-icon" aria-hidden="true">⏰</div>
-              <p>Más adelante Ideapp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+              <p>Más adelante IdeApp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
             </div>
           </section>
         </section>
 
         <section className={`screen ${activeScreen === "ideasScreen" ? "active" : ""}`}>
+          <div className="ideas-search-wrap">
+            <span aria-hidden="true"><SearchIcon /></span>
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Buscar ideas"
+              aria-label="Buscar ideas"
+            />
+          </div>
+
+          {normalizedSearchQuery ? (
+            <section className="search-results" aria-live="polite">
+              <div className="section-head">
+                <h2 className="section-title">Resultados</h2>
+                <span className="section-note">{searchResults.length}</span>
+              </div>
+              {searchResults.length > 0 ? (
+                <div className="ideas-list">
+                  {searchResults.map((storedIdea) => {
+                    const idea = toDisplayIdea(storedIdea);
+                    return (
+                      <IdeaCard
+                        key={idea.id}
+                        idea={idea}
+                        onToggleFavorite={toggleFavorite}
+                        onTogglePinned={togglePinned}
+                        onRequestEdit={requestEditIdea}
+                        onRequestDelete={requestDeleteIdea}
+                        isDeleting={deletingIdeaId === idea.id}
+                        isHighlighted={false}
+                        elementId={`search-idea-${idea.id}`}
+                      />
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="search-empty">
+                  <h3>No encontramos esa idea</h3>
+                  <p>Probá con otra palabra o categoría.</p>
+                </div>
+              )}
+            </section>
+          ) : (
+            <>
           <div className="section-head">
             <h2 className="section-title">Revisar por hábito</h2>
             <span className="section-note">Toque rápido</span>
@@ -1175,6 +1334,8 @@ export default function Home() {
             <h3>{ideasPanel?.title || "Recientes"}</h3>
             <p>{ideasPanel?.copy || "Tus últimas ideas guardadas aparecen acá para que las retomes cuando todavía están frescas."}</p>
           </div>
+            </>
+          )}
         </section>
 
         <section className={`screen ${activeScreen === "settingsScreen" ? "active" : ""}`}>
@@ -1228,6 +1389,48 @@ export default function Home() {
             <div className="delete-dialog-actions">
               <button type="button" className="delete-cancel" onClick={cancelDeleteIdea}>Cancelar</button>
               <button type="button" className="delete-confirm" onClick={confirmDeleteIdea}>Eliminar</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {editDraft && (
+        <div className="delete-dialog-backdrop" role="presentation" onClick={cancelEditIdea}>
+          <section
+            className="edit-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="edit-dialog-title">Editar idea</h2>
+            <label>
+              <span>Título</span>
+              <input
+                type="text"
+                value={editDraft.title}
+                onChange={(event) => setEditDraft({ ...editDraft, title: event.target.value })}
+                maxLength={120}
+              />
+            </label>
+            <label>
+              <span>Resumen</span>
+              <textarea
+                value={editDraft.summary}
+                onChange={(event) => setEditDraft({ ...editDraft, summary: event.target.value })}
+                maxLength={400}
+              />
+            </label>
+            <div className="edit-dialog-actions">
+              <button type="button" className="edit-cancel" onClick={cancelEditIdea}>Cancelar</button>
+              <button
+                type="button"
+                className="edit-save"
+                disabled={!cleanText(editDraft.title) || !cleanText(editDraft.summary)}
+                onClick={saveEditedIdea}
+              >
+                Guardar cambios
+              </button>
             </div>
           </section>
         </div>

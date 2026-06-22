@@ -5,6 +5,7 @@ export type Idea = {
   original_text: string;
   corrected_text: string;
   summary: string;
+  category?: string | null;
   month: string;
   status: string;
   is_favorite?: boolean;
@@ -79,6 +80,7 @@ export async function createIdea(idea: CreateIdeaInput) {
     original_text: idea.original_text,
     corrected_text: idea.corrected_text,
     summary: idea.summary,
+    category: idea.category ?? "Random",
     month: idea.month,
     status: idea.status,
     is_favorite: idea.is_favorite ?? false,

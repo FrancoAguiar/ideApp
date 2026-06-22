@@ -1,6 +1,6 @@
 {
-  "name": "Ideapp",
-  "short_name": "Ideapp",
+  "name": "IdeApp",
+  "short_name": "IdeApp",
   "description": "Captura ideas rápidas antes de olvidarlas.",
   "id": "/",
   "start_url": "/",

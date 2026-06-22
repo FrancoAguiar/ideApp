@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#f8f5ec" />
-  <title>Ideapp</title>
+  <title>IdeApp</title>
   <style>
     :root {
       --bg: #f8f5ec;
@@ -903,7 +903,7 @@
   </style>
 </head>
 <body>
-  <main class="app-shell" aria-label="Ideapp">
+  <main class="app-shell" aria-label="IdeApp">
     <header class="topbar">
       <div>
         <div class="eyebrow" id="todaySaved">3 ideas guardadas hoy</div>
@@ -1060,7 +1060,7 @@
       <section class="section">
         <div class="reminder-card">
           <div class="reminder-icon" aria-hidden="true">⏰</div>
-          <p>Más adelante Ideapp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
+          <p>Más adelante IdeApp podrá recordarte ideas antiguas para que no queden olvidadas.</p>
         </div>
       </section>
     </section>
@@ -1117,7 +1117,7 @@
           <span class="chevron" aria-hidden="true">›</span>
         </button>
 
-        <button class="habit-card" type="button" data-panel-title="Por revisar" data-panel-copy="Un espacio para ideas que Ideapp puede recordarte más adelante, sin presión.">
+        <button class="habit-card" type="button" data-panel-title="Por revisar" data-panel-copy="Un espacio para ideas que IdeApp puede recordarte más adelante, sin presión.">
           <span class="habit-icon" aria-hidden="true">👀</span>
           <span>
             <span class="habit-title">Por revisar</span>
@@ -1133,7 +1133,7 @@
       </div>
     </section>
 
-    <section class="screen" id="settingsScreen" data-title="Ajustes" data-subtitle="Todo tranquilo y en orden." data-eyebrow="Ideapp lista para crecer">
+    <section class="screen" id="settingsScreen" data-title="Ajustes" data-subtitle="Todo tranquilo y en orden." data-eyebrow="IdeApp lista para crecer">
       <div class="section-head">
         <h2 class="section-title">Preferencias</h2>
         <span class="section-note">Visual</span>
@@ -1153,7 +1153,7 @@
           <span class="setting-icon" aria-hidden="true">🔔</span>
           <span>
             <span class="setting-title">Notificaciones</span>
-            <span class="setting-copy">Avisos suaves para volver a Ideapp.</span>
+            <span class="setting-copy">Avisos suaves para volver a IdeApp.</span>
           </span>
           <span class="chevron" aria-hidden="true">›</span>
         </button>
@@ -1394,7 +1394,13 @@
       const article = document.createElement("article");
       article.className = "idea-card";
       article.innerHTML = `
-        <div class="idea-emoji" aria-hidden="true">🌱</div>
+        <div class="idea-emoji" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18.5h6"></path>
+            <path d="M10 21h4"></path>
+            <path d="M8.5 15.2c-1.7-1.2-2.8-3.1-2.8-5.3A6.3 6.3 0 0 1 12 3.6a6.3 6.3 0 0 1 6.3 6.3c0 2.2-1.1 4.1-2.8 5.3-.6.4-.9 1-.9 1.7v.1H9.4v-.1c0-.7-.3-1.3-.9-1.7Z"></path>
+          </svg>
+        </div>
         <div class="idea-content">
           <div class="idea-topline">
             <h3 class="idea-title"></h3>
