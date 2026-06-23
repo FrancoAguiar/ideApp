@@ -1,5 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import OneSignalInitializer from "@/components/OneSignalInitializer";
 import "./globals.css";
+
+const isOneSignalConfigured = Boolean(process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim());
 
 export const metadata: Metadata = {
   applicationName: "IdeApp",
@@ -43,7 +47,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        {isOneSignalConfigured && (
+          <Script id="onesignal-deferred-queue" strategy="beforeInteractive">
+            {"window.OneSignalDeferred = window.OneSignalDeferred || [];"}
+          </Script>
+        )}
+        {children}
+        <OneSignalInitializer />
+      </body>
     </html>
   );
 }

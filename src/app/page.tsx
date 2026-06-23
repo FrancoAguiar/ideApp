@@ -7,6 +7,7 @@ import { AccountErrorScreen, AccountLoadingScreen } from "@/components/AccountSc
 import LocalAccountSettings from "@/components/LocalAccountSettings";
 import LocalProfileOnboarding from "@/components/LocalProfileOnboarding";
 import LoginScreen from "@/components/LoginScreen";
+import NotificationSettings from "@/components/NotificationSettings";
 import { readLocalProfile, type LocalProfile } from "@/lib/local-profile";
 import {
   createIdea,
@@ -144,7 +145,6 @@ const habitCards = [
 ];
 
 const settingsRows = [
-  { icon: "bell", title: "Notificaciones", copy: "Avisos suaves para volver a IdeApp." },
   { icon: "clock", title: "Recordatorios de ideas", copy: "Recuperar ideas cuando puedan servir." },
   { icon: "palette", title: "Apariencia", copy: "Color, estilo y sensación visual." },
   { icon: "export", title: "Exportar ideas", copy: "Llevar tus ideas a otro lugar." },
@@ -1484,6 +1484,8 @@ export default function Home() {
                   onSignOut={() => void handleSignOut()}
                 />
               )}
+
+          <NotificationSettings />
 
           <div className="section-head">
             <h2 className="section-title">Preferencias</h2>

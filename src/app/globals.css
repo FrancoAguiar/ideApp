@@ -338,6 +338,111 @@ p {
   margin-bottom: 24px;
 }
 
+.notification-settings {
+  margin-bottom: 24px;
+}
+
+.notification-status {
+  padding: 6px 9px;
+  border: 1px solid #e0e7d8;
+  border-radius: 999px;
+  color: #7b8475;
+  background: #f7f9f3;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.notification-status.active {
+  border-color: #cceab9;
+  color: #347e08;
+  background: #effbe7;
+}
+
+.notification-settings-card {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 13px;
+  padding: 16px;
+  border: 1px solid rgba(224, 229, 215, 0.94);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff, #fdfefa);
+  box-shadow: var(--hairline), var(--soft-shadow);
+}
+
+.notification-settings-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+  color: #3f8f0d;
+  background: linear-gradient(180deg, #f7fcf2, var(--soft));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), inset 0 -4px 0 rgba(88, 204, 2, 0.1);
+}
+
+.notification-settings-content {
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.notification-settings-content strong {
+  display: block;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.notification-settings-content p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 640;
+}
+
+.notification-activate {
+  grid-column: 1 / -1;
+  min-height: 44px;
+  margin-top: 3px;
+  border-radius: 15px;
+  color: #ffffff;
+  background: var(--green);
+  box-shadow: 0 4px 0 var(--green-dark);
+  font-size: 14px;
+  font-weight: 900;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.notification-activate:active:not(:disabled) {
+  transform: translateY(3px) scale(0.98);
+  box-shadow: 0 1px 0 var(--green-dark);
+}
+
+.notification-activate:disabled {
+  cursor: default;
+  color: #66705f;
+  background: #edf0e8;
+  box-shadow: 0 3px 0 #dce2d5;
+  opacity: 0.84;
+}
+
+.notification-error {
+  grid-column: 1 / -1;
+  min-height: 0;
+  color: #b64036;
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 750;
+  opacity: 0;
+}
+
+.notification-error.show {
+  min-height: 17px;
+  opacity: 1;
+}
+
 .account-settings-card {
   padding: 16px;
   border: 1px solid rgba(224, 229, 215, 0.94);
