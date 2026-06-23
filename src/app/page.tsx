@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import LoginScreen from "@/components/LoginScreen";
 import {
   createIdea,
   deleteIdea as deleteIdeaFromSupabase,
+  getCurrentUser,
   getIdeas,
   isSupabaseConfigured,
+  listenToAuthChanges,
+  signOut,
   updateIdea,
+  type AuthUser,
   type CreateIdeaInput,
   type Idea as SupabaseIdea,
 } from "@/lib/supabase";
@@ -84,67 +89,6 @@ const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: s
   },
 };
 
-const initialJuneIdeas: Idea[] = [
-  {
-    id: "fake-june-app",
-    emoji: "📱",
-    title: "App para recordar ideas",
-    copy: "Una herramienta que vuelve a mostrar ideas antiguas cuando pueden servir.",
-    tag: "App",
-    time: "Hace 4 min",
-    isFavorite: false,
-    isPinned: false,
-  },
-  {
-    id: "fake-june-reel",
-    emoji: "🎬",
-    title: "Reel para diseñadores",
-    copy: "Un video corto sobre cómo las buenas ideas se pierden cuando no se capturan a tiempo.",
-    tag: "Contenido",
-    time: "Hoy",
-    isFavorite: false,
-    isPinned: false,
-  },
-  {
-    id: "fake-june-projects",
-    emoji: "🧭",
-    title: "Sistema para organizar proyectos",
-    copy: "Un método simple para transformar ideas sueltas en próximos pasos concretos.",
-    tag: "Diseño",
-    time: "Ayer",
-    isFavorite: false,
-    isPinned: false,
-  },
-];
-
-const mayIdeas: Idea[] = [
-  {
-    id: "fake-may-product",
-    emoji: "🧩",
-    title: "Producto digital para freelancers",
-    copy: "Una plantilla para convertir servicios repetidos en productos digitales simples.",
-    tag: "Negocio",
-    time: "Mayo",
-    isFavorite: false,
-    isPinned: false,
-  },
-  {
-    id: "fake-may-messages",
-    emoji: "💬",
-    title: "Automatización de mensajes",
-    copy: "Un flujo amable para responder consultas frecuentes sin perder el tono humano.",
-    tag: "Automatización",
-    time: "Mayo",
-    isFavorite: false,
-    isPinned: false,
-  },
-];
-
-const fakeMonthGroups: MonthGroup[] = [
-  { month: "Junio 2026", ideas: initialJuneIdeas },
-  { month: "Mayo 2026", ideas: mayIdeas },
-];
-
 const habitCards = [
   {
     icon: "🕘",
@@ -194,7 +138,7 @@ const settingsRows = [
   { icon: "export", title: "Exportar ideas", copy: "Llevar tus ideas a otro lugar." },
   { icon: "lock", title: "Privacidad", copy: "Control y tranquilidad sobre tus datos." },
   { icon: "question", title: "Ayuda", copy: "Preguntas, guía y soporte." },
-  { icon: "logout", title: "Cerrar sesión", copy: "Solo visual por ahora.", danger: true },
+  { icon: "logout", title: "Cerrar sesión", copy: "Salir de tu cuenta.", danger: true },
 ];
 
 function cleanText(text: string) {
@@ -300,9 +244,9 @@ function toStoredIdea(idea: SupabaseIdea): StoredIdea {
   };
 }
 
-function toSupabaseIdeaInput(idea: StoredIdea): CreateIdeaInput {
+function toSupabaseIdeaInput(idea: StoredIdea, userId: string): CreateIdeaInput {
   return {
-    user_id: null,
+    user_id: userId,
     title: idea.title,
     original_text: idea.originalText,
     corrected_text: idea.correctedText,
@@ -367,9 +311,13 @@ function isStoredIdea(value: unknown): value is StoredIdea {
   );
 }
 
-function readStoredIdeas() {
+function userStorageKey(baseKey: string, userId: string) {
+  return `${baseKey}:${userId}`;
+}
+
+function readStoredIdeas(userId: string) {
   try {
-    const rawIdeas = window.localStorage.getItem(IDEAS_STORAGE_KEY);
+    const rawIdeas = window.localStorage.getItem(userStorageKey(IDEAS_STORAGE_KEY, userId));
     if (!rawIdeas) return [];
 
     const parsedIdeas: unknown = JSON.parse(rawIdeas);
@@ -386,17 +334,17 @@ function readStoredIdeas() {
   }
 }
 
-function writeStoredIdeas(ideas: StoredIdea[]) {
+function writeStoredIdeas(userId: string, ideas: StoredIdea[]) {
   try {
-    window.localStorage.setItem(IDEAS_STORAGE_KEY, JSON.stringify(ideas));
+    window.localStorage.setItem(userStorageKey(IDEAS_STORAGE_KEY, userId), JSON.stringify(ideas));
   } catch {
     // The app should keep working even when storage is unavailable.
   }
 }
 
-function readDeletedIdeaIds() {
+function readDeletedIdeaIds(userId: string) {
   try {
-    const rawIds = window.localStorage.getItem(DELETED_IDEAS_STORAGE_KEY);
+    const rawIds = window.localStorage.getItem(userStorageKey(DELETED_IDEAS_STORAGE_KEY, userId));
     const parsedIds: unknown = rawIds ? JSON.parse(rawIds) : [];
     return Array.isArray(parsedIds)
       ? parsedIds.filter((id): id is string => typeof id === "string")
@@ -406,11 +354,14 @@ function readDeletedIdeaIds() {
   }
 }
 
-function rememberDeletedIdeaId(id: string) {
+function rememberDeletedIdeaId(userId: string, id: string) {
   try {
-    const deletedIds = new Set(readDeletedIdeaIds());
+    const deletedIds = new Set(readDeletedIdeaIds(userId));
     deletedIds.add(id);
-    window.localStorage.setItem(DELETED_IDEAS_STORAGE_KEY, JSON.stringify(Array.from(deletedIds)));
+    window.localStorage.setItem(
+      userStorageKey(DELETED_IDEAS_STORAGE_KEY, userId),
+      JSON.stringify(Array.from(deletedIds)),
+    );
   } catch {
     // Keep the UI responsive even when localStorage is unavailable.
   }
@@ -456,24 +407,6 @@ function createIdeaId() {
   }
 
   return `idea-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function fakeIdeasAsStoredIdeas() {
-  return fakeMonthGroups.flatMap((group, groupIndex) =>
-    group.ideas.map((idea, ideaIndex) => ({
-      id: idea.id,
-      title: idea.title,
-      originalText: idea.copy,
-      correctedText: idea.copy,
-      summary: idea.copy,
-      category: idea.tag || "Random",
-      month: group.month,
-      createdAt: new Date(Date.UTC(2026, 5 - groupIndex, 10 - ideaIndex, 12)).toISOString(),
-      status: "Guardada" as const,
-      isFavorite: idea.isFavorite,
-      isPinned: idea.isPinned,
-    })),
-  );
 }
 
 function FavoriteIcon({ active }: { active: boolean }) {
@@ -738,6 +671,9 @@ function WelcomeScreen({ onEnter, isExiting }: { onEnter: () => void; isExiting:
 }
 
 export default function Home() {
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
+  const [hasLoadedUserIdeas, setHasLoadedUserIdeas] = useState(false);
   const [activeScreen, setActiveScreen] = useState<ScreenId>("homeScreen");
   const [storedIdeas, setStoredIdeas] = useState<StoredIdea[]>([]);
   const [, setTotal] = useState(12);
@@ -765,35 +701,74 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
 
+    const stopListening = listenToAuthChanges((user) => {
+      if (!isMounted) return;
+      setCurrentUser(user);
+      setHasCheckedAuth(true);
+
+      if (!user) {
+        setStoredIdeas([]);
+        setHasLoadedUserIdeas(false);
+        setActiveScreen("homeScreen");
+      }
+    });
+
+    void getCurrentUser()
+      .then((user) => {
+        if (!isMounted) return;
+        setCurrentUser(user);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setCurrentUser(null);
+      })
+      .finally(() => {
+        if (isMounted) setHasCheckedAuth(true);
+      });
+
+    return () => {
+      isMounted = false;
+      stopListening();
+    };
+  }, []);
+
+  useEffect(() => {
     try {
       setShowWelcome(localStorage.getItem("ideapp-welcome-seen") !== "true");
     } catch {
       setShowWelcome(true);
     }
 
+    setHasCheckedWelcome(true);
+
+    return () => {
+      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+      if (processingTimer.current) clearTimeout(processingTimer.current);
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setStoredIdeas([]);
+      setHasLoadedUserIdeas(false);
+      return;
+    }
+
+    let isMounted = true;
+    const userId = currentUser.id;
+
     async function loadIdeas() {
       let loadedIdeas: StoredIdea[] = [];
-      const deletedIdeaIds = new Set(readDeletedIdeaIds());
-      const localIdeas = readStoredIdeas().filter((idea) => !deletedIdeaIds.has(idea.id));
+      const deletedIdeaIds = new Set(readDeletedIdeaIds(userId));
+      const localIdeas = readStoredIdeas(userId).filter((idea) => !deletedIdeaIds.has(idea.id));
 
       if (isSupabaseConfigured) {
         try {
-          const supabaseIdeas = await getIdeas();
-          const mergedIdeas = new Map(
-            supabaseIdeas
-              .map(toStoredIdea)
-              .filter((idea) => !deletedIdeaIds.has(idea.id))
-              .map((idea) => [idea.id, idea]),
-          );
-
-          localIdeas.forEach((idea) => {
-            mergedIdeas.set(idea.id, {
-              ...mergedIdeas.get(idea.id),
-              ...idea,
-            });
-          });
-
-          loadedIdeas = Array.from(mergedIdeas.values());
+          const supabaseIdeas = await getIdeas(userId);
+          loadedIdeas = supabaseIdeas
+            .map(toStoredIdea)
+            .filter((idea) => !deletedIdeaIds.has(idea.id));
         } catch {
           loadedIdeas = localIdeas;
         }
@@ -803,24 +778,18 @@ export default function Home() {
 
       if (!isMounted) return;
 
-      if (loadedIdeas.length > 0) {
-        setStoredIdeas(loadedIdeas);
-        setTotal(12 + loadedIdeas.length);
-        setToday(3 + loadedIdeas.filter((idea) => new Date(idea.createdAt).toDateString() === new Date().toDateString()).length);
-      }
+      setStoredIdeas(loadedIdeas);
+      setTotal(loadedIdeas.length);
+      setToday(loadedIdeas.filter((idea) => new Date(idea.createdAt).toDateString() === new Date().toDateString()).length);
+      setHasLoadedUserIdeas(true);
     }
 
     void loadIdeas();
 
-    setHasCheckedWelcome(true);
-
     return () => {
       isMounted = false;
-      if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
-      if (processingTimer.current) clearTimeout(processingTimer.current);
-      if (highlightTimer.current) clearTimeout(highlightTimer.current);
     };
-  }, []);
+  }, [currentUser]);
 
   const meta = screenMeta[activeScreen];
 
@@ -894,6 +863,8 @@ export default function Home() {
   }
 
   async function saveIdea() {
+    if (!currentUser) return;
+
     if (!preparedIdea) {
       organizeIdea();
       return;
@@ -921,7 +892,7 @@ export default function Home() {
 
     if (isSupabaseConfigured) {
       try {
-        const createdIdea = await createIdea(toSupabaseIdeaInput(newIdea));
+        const createdIdea = await createIdea(toSupabaseIdeaInput(newIdea, currentUser.id));
         ideaToDisplay = toStoredIdea(createdIdea);
       } catch {
         shouldUseLocalStorage = true;
@@ -931,7 +902,7 @@ export default function Home() {
     setStoredIdeas((ideas) => {
       const nextIdeas = [ideaToDisplay, ...ideas];
       if (shouldUseLocalStorage) {
-        writeStoredIdeas(nextIdeas);
+        writeStoredIdeas(currentUser.id, nextIdeas);
       }
       return nextIdeas;
     });
@@ -943,7 +914,9 @@ export default function Home() {
   }
 
   async function toggleIdeaFlag(idea: Idea, flag: "isFavorite" | "isPinned") {
-    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    if (!currentUser) return;
+
+    const baseIdeas = storedIdeas;
     const currentIdea = baseIdeas.find((storedIdea) => storedIdea.id === idea.id);
     if (!currentIdea) return;
 
@@ -955,16 +928,16 @@ export default function Home() {
     );
 
     setStoredIdeas(nextIdeas);
-    writeStoredIdeas(nextIdeas);
+    writeStoredIdeas(currentUser.id, nextIdeas);
 
-    const isFakeIdea = idea.id.startsWith("fake-");
-    if (!isSupabaseConfigured || isFakeIdea) {
+    if (!isSupabaseConfigured) {
       return;
     }
 
     try {
       await updateIdea(
         idea.id,
+        currentUser.id,
         flag === "isFavorite"
           ? { is_favorite: nextValue }
           : { is_pinned: nextValue },
@@ -987,7 +960,7 @@ export default function Home() {
   }
 
   function requestEditIdea(idea: Idea) {
-    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const baseIdeas = storedIdeas;
     const storedIdea = baseIdeas.find((item) => item.id === idea.id);
     if (!storedIdea) return;
 
@@ -1003,24 +976,24 @@ export default function Home() {
   }
 
   function saveEditedIdea() {
-    if (!editDraft) return;
+    if (!editDraft || !currentUser) return;
 
     const title = cleanText(editDraft.title);
     const summary = cleanText(editDraft.summary);
     if (!title || !summary) return;
 
-    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const baseIdeas = storedIdeas;
     const nextIdeas = baseIdeas.map((idea) =>
       idea.id === editDraft.id ? { ...idea, title, summary } : idea,
     );
 
     setStoredIdeas(nextIdeas);
-    writeStoredIdeas(nextIdeas);
+    writeStoredIdeas(currentUser.id, nextIdeas);
     setEditDraft(null);
 
-    if (!isSupabaseConfigured || editDraft.id.startsWith("fake-")) return;
+    if (!isSupabaseConfigured) return;
 
-    void updateIdea(editDraft.id, { title, summary }).catch((error) => {
+    void updateIdea(editDraft.id, currentUser.id, { title, summary }).catch((error) => {
       console.error("Failed to update idea in Supabase; local changes were preserved.", error);
     });
   }
@@ -1030,10 +1003,10 @@ export default function Home() {
   }
 
   function confirmDeleteIdea() {
-    if (!ideaPendingDelete) return;
+    if (!ideaPendingDelete || !currentUser) return;
 
     const idea = ideaPendingDelete;
-    const baseIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+    const baseIdeas = storedIdeas;
     const storedIdea = baseIdeas.find((item) => item.id === idea.id);
     const nextIdeas = baseIdeas.filter((item) => item.id !== idea.id);
 
@@ -1042,7 +1015,7 @@ export default function Home() {
 
     window.setTimeout(() => {
       setStoredIdeas(nextIdeas);
-      writeStoredIdeas(nextIdeas);
+      writeStoredIdeas(currentUser.id, nextIdeas);
       setDeletingIdeaId(null);
       setTotal((value) => Math.max(0, value - 1));
 
@@ -1051,12 +1024,11 @@ export default function Home() {
       }
     }, 220);
 
-    const isFakeIdea = idea.id.startsWith("fake-");
-    if (!isSupabaseConfigured || isFakeIdea) return;
+    if (!isSupabaseConfigured) return;
 
-    void deleteIdeaFromSupabase(idea.id).catch((error) => {
+    void deleteIdeaFromSupabase(idea.id, currentUser.id).catch((error) => {
       console.error("Failed to delete idea from Supabase", error);
-      rememberDeletedIdeaId(idea.id);
+      rememberDeletedIdeaId(currentUser.id, idea.id);
     });
   }
 
@@ -1093,6 +1065,26 @@ export default function Home() {
     }, 320);
   }
 
+  async function handleSignOut() {
+    try {
+      await signOut();
+      setCurrentUser(null);
+      setStoredIdeas([]);
+      setHasLoadedUserIdeas(false);
+      setActiveScreen("homeScreen");
+    } catch (error) {
+      console.error("Failed to sign out", error);
+    }
+  }
+
+  if (!hasCheckedAuth) {
+    return null;
+  }
+
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
+
   if (!hasCheckedWelcome) {
     return null;
   }
@@ -1101,8 +1093,8 @@ export default function Home() {
     return <WelcomeScreen onEnter={enterApp} isExiting={isWelcomeExiting} />;
   }
 
-  const monthGroups = storedIdeas.length > 0 ? groupStoredIdeasByMonth(storedIdeas) : fakeMonthGroups;
-  const sourceIdeas = storedIdeas.length > 0 ? storedIdeas : fakeIdeasAsStoredIdeas();
+  const monthGroups = groupStoredIdeasByMonth(storedIdeas);
+  const sourceIdeas = storedIdeas;
   const rememberedIdea = findIdeaToRemember(sourceIdeas);
   const rememberedIdeaAge = rememberedIdea ? daysSinceIdeaWasSaved(rememberedIdea.createdAt) : null;
   const visibleIdeas = monthGroups.flatMap((group) => group.ideas);
@@ -1217,27 +1209,34 @@ export default function Home() {
             </div>
 
             <div>
-              {monthGroups.map((group, groupIndex) => (
-                <section className={`month-section ${groupIndex === 0 ? "current-month" : ""}`} data-month={group.month} key={group.month}>
-                  {groupIndex > 0 && <h2 className="month-title">{group.month}</h2>}
-                  <div className="ideas-list">
-                    {group.ideas.map((idea, ideaIndex) => (
-                      <IdeaCard
-                        key={idea.id}
-                        idea={idea}
-                        onToggleFavorite={toggleFavorite}
-                        onTogglePinned={togglePinned}
-                        onRequestEdit={requestEditIdea}
-                        onRequestDelete={requestDeleteIdea}
-                        isDeleting={deletingIdeaId === idea.id}
-                        isHighlighted={highlightedIdeaId === idea.id}
-                        isFeatured={groupIndex === 0 && ideaIndex === 0}
-                        elementId={`idea-${idea.id}`}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))}
+              {monthGroups.length > 0
+                ? monthGroups.map((group, groupIndex) => (
+                    <section className={`month-section ${groupIndex === 0 ? "current-month" : ""}`} data-month={group.month} key={group.month}>
+                      {groupIndex > 0 && <h2 className="month-title">{group.month}</h2>}
+                      <div className="ideas-list">
+                        {group.ideas.map((idea, ideaIndex) => (
+                          <IdeaCard
+                            key={idea.id}
+                            idea={idea}
+                            onToggleFavorite={toggleFavorite}
+                            onTogglePinned={togglePinned}
+                            onRequestEdit={requestEditIdea}
+                            onRequestDelete={requestDeleteIdea}
+                            isDeleting={deletingIdeaId === idea.id}
+                            isHighlighted={highlightedIdeaId === idea.id}
+                            isFeatured={groupIndex === 0 && ideaIndex === 0}
+                            elementId={`idea-${idea.id}`}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))
+                : hasLoadedUserIdeas && (
+                    <div className="home-empty">
+                      <h3>Tu primera idea va a aparecer acá</h3>
+                      <p>Escribila arriba aunque todavía esté desordenada.</p>
+                    </div>
+                  )}
             </div>
           </section>
 
@@ -1334,7 +1333,12 @@ export default function Home() {
 
           <div className="settings-list">
             {settingsRows.map((row) => (
-              <button className={`setting-row ${row.danger ? "danger" : ""}`} key={row.title} type="button">
+              <button
+                className={`setting-row ${row.danger ? "danger" : ""}`}
+                key={row.title}
+                type="button"
+                onClick={row.icon === "logout" ? handleSignOut : undefined}
+              >
                 <span className="setting-icon" aria-hidden="true"><SettingIcon name={row.icon} /></span>
                 <span>
                   <span className="setting-title">{row.title}</span>
