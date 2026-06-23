@@ -44,6 +44,16 @@ declare global {
 
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim() ?? "";
 const allowLocalhost = process.env.NEXT_PUBLIC_ONESIGNAL_ALLOW_LOCALHOST === "true";
+const ACTIVATION_TIMEOUT_MS = 12_000;
+
+export const NOTIFICATION_TIMEOUT_MESSAGE = "No pudimos activar los recordatorios. Cerrá y abrí IdeApp desde el ícono de inicio e intentá de nuevo.";
+
+export class NotificationActivationTimeoutError extends Error {
+  constructor() {
+    super(NOTIFICATION_TIMEOUT_MESSAGE);
+    this.name = "NotificationActivationTimeoutError";
+  }
+}
 
 let rejectInitialization: ((reason?: unknown) => void) | null = null;
 let sdkLoadState: "idle" | "loaded" | "failed" = "idle";
@@ -265,57 +275,104 @@ export function initializeOneSignal(): Promise<OneSignalSdk> {
   return initializationPromise;
 }
 
-export async function requestNotificationPermission() {
+function subscriptionState(oneSignal: OneSignalSdk) {
+  return {
+    optedIn: oneSignal.User.PushSubscription.optedIn,
+    subscriptionId: oneSignal.User.PushSubscription.id,
+    hasToken: Boolean(oneSignal.User.PushSubscription.token),
+    permission: getNotificationPermission(),
+  };
+}
+
+async function runNotificationActivation() {
+  debugLog("init start", {
+    initialized: typeof window !== "undefined" && Boolean(window.__ideappOneSignalInitialized),
+  });
+
+  const oneSignal = await initializeOneSignal();
+  debugLog("init done", {
+    reusedInstance: typeof window !== "undefined" && window.__ideappOneSignalInstance === oneSignal,
+  });
+
   const permissionBefore = getNotificationPermission();
-  debugLog("Solicitud de permiso iniciada", { permissionBefore });
+  debugLog("permission before", { permission: permissionBefore });
+
+  if (permissionBefore === "unsupported" || permissionBefore === "denied") {
+    debugLog("final subscription state", {
+      ...subscriptionState(oneSignal),
+      skipped: permissionBefore,
+    });
+    return permissionBefore;
+  }
+
+  const pushSupported = oneSignal.Notifications.isPushSupported();
+  debugLog("Soporte push según OneSignal", { pushSupported });
+  if (!pushSupported) {
+    debugLog("final subscription state", {
+      ...subscriptionState(oneSignal),
+      skipped: "unsupported",
+    });
+    return "unsupported" as const;
+  }
+
+  if (permissionBefore !== "granted") {
+    debugLog("permission requested", { permissionBefore });
+    await oneSignal.Notifications.requestPermission();
+  } else {
+    debugLog("permission requested", { skipped: "already granted" });
+  }
+
+  const permissionAfter = getNotificationPermission();
+  debugLog("permission after", {
+    permission: permissionAfter,
+    oneSignalPermission: oneSignal.Notifications.permission,
+  });
+
+  if (permissionAfter !== "granted") {
+    debugLog("final subscription state", {
+      ...subscriptionState(oneSignal),
+      skipped: `permission=${permissionAfter}`,
+    });
+    return permissionAfter;
+  }
+
+  debugLog("optIn start", subscriptionState(oneSignal));
+  await oneSignal.User.PushSubscription.optIn();
+  debugLog("optIn done", subscriptionState(oneSignal));
+
+  const finalState = subscriptionState(oneSignal);
+  debugLog("final subscription state", finalState);
+
+  if (!finalState.optedIn) {
+    throw new Error("OneSignal no confirmó la suscripción de este dispositivo.");
+  }
+
+  return finalState.permission;
+}
+
+function withActivationTimeout<T>(operation: Promise<T>) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new NotificationActivationTimeoutError();
+      debugError("activation timeout", error, { timeoutMs: ACTIVATION_TIMEOUT_MS });
+      reject(error);
+    }, ACTIVATION_TIMEOUT_MS);
+  });
+
+  return Promise.race([operation, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+export async function requestNotificationPermission() {
+  const activation = runNotificationActivation();
 
   try {
-    if (permissionBefore === "unsupported" || permissionBefore === "denied") {
-      debugLog("Solicitud de permiso omitida", { reason: permissionBefore });
-      return permissionBefore;
-    }
-
-    const oneSignal = await initializeOneSignal();
-    const pushSupported = oneSignal.Notifications.isPushSupported();
-    debugLog("Soporte push según OneSignal", { pushSupported });
-    if (!pushSupported) return "unsupported";
-
-    if (permissionBefore !== "granted") {
-      debugLog("Mostrando solicitud nativa de permiso", { permissionBefore });
-      await oneSignal.Notifications.requestPermission();
-    }
-
-    const permissionAfterRequest = getNotificationPermission();
-    debugLog("Solicitud de permiso completada", {
-      permissionBefore,
-      permissionAfter: permissionAfterRequest,
-      oneSignalPermission: oneSignal.Notifications.permission,
-    });
-
-    if (permissionAfterRequest !== "granted") {
-      debugLog("PushSubscription.optIn omitido", {
-        reason: `Notification.permission=${permissionAfterRequest}`,
-      });
-      return permissionAfterRequest;
-    }
-
-    debugLog("PushSubscription.optIn iniciado", {
-      optedInBefore: oneSignal.User.PushSubscription.optedIn,
-      subscriptionIdBefore: oneSignal.User.PushSubscription.id,
-      hasTokenBefore: Boolean(oneSignal.User.PushSubscription.token),
-    });
-    await oneSignal.User.PushSubscription.optIn();
-    debugLog("PushSubscription.optIn completado", {
-      optedInAfter: oneSignal.User.PushSubscription.optedIn,
-      subscriptionIdAfter: oneSignal.User.PushSubscription.id,
-      hasTokenAfter: Boolean(oneSignal.User.PushSubscription.token),
-    });
-
-    return getNotificationPermission();
+    return await withActivationTimeout(activation);
   } catch (error) {
     debugError("Falló la activación de notificaciones", error, {
-      permissionBefore,
-      permissionAfter: getNotificationPermission(),
+      permission: getNotificationPermission(),
       sdkLoadState,
     });
     throw error;

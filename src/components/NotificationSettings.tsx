@@ -6,6 +6,8 @@ import {
   getOneSignalErrorMessage,
   isInstalledPwa,
   isOneSignalConfigured,
+  NotificationActivationTimeoutError,
+  NOTIFICATION_TIMEOUT_MESSAGE,
   requestNotificationPermission,
   type NotificationPermissionState,
 } from "@/lib/onesignal";
@@ -57,23 +59,43 @@ export default function NotificationSettings() {
 
   async function activateNotifications() {
     setError(null);
-
-    if (!isOneSignalConfigured()) {
-      setError("Los recordatorios todavía no están disponibles.");
-      return;
-    }
-
     setIsRequesting(true);
     try {
+      const installed = isInstalledPwa();
+      if (!installed) {
+        setState({ installed: false, permission: getNotificationPermission() });
+        setError("Abrí IdeApp desde el ícono de inicio para activar recordatorios.");
+        return;
+      }
+
+      const permissionBefore = getNotificationPermission();
+      if (permissionBefore === "denied") {
+        setState({ installed: true, permission: permissionBefore });
+        setError("Las notificaciones están bloqueadas. Activá el permiso desde Ajustes del iPhone.");
+        return;
+      }
+
+      if (!isOneSignalConfigured()) {
+        setError("Los recordatorios todavía no están disponibles.");
+        return;
+      }
+
       const permission = await requestNotificationPermission();
       setState({ installed: isInstalledPwa(), permission });
+      if (permission === "denied") {
+        setError("Las notificaciones están bloqueadas. Activá el permiso desde Ajustes del iPhone.");
+      }
     } catch (requestError) {
       console.error(
         "[IdeApp][OneSignal] No se pudo solicitar permiso de notificaciones",
         requestError,
         requestError instanceof Error ? requestError.stack : undefined,
       );
-      setError(getOneSignalErrorMessage(requestError));
+      setError(
+        requestError instanceof NotificationActivationTimeoutError
+          ? NOTIFICATION_TIMEOUT_MESSAGE
+          : getOneSignalErrorMessage(requestError),
+      );
     } finally {
       setIsRequesting(false);
     }
@@ -85,10 +107,10 @@ export default function NotificationSettings() {
   const canRequest = state.installed && state.permission === "default";
 
   let copy = "Elegí cuándo querés volver a tus ideas.";
-  if (!state.installed) copy = "Para recibir notificaciones en iPhone, agregá IdeApp a tu pantalla de inicio.";
+  if (!state.installed) copy = "Abrí IdeApp desde el ícono de inicio para activar recordatorios.";
   else if (isUnsupported) copy = "Este navegador no admite notificaciones para IdeApp.";
   else if (isGranted) copy = "Los recordatorios están activados en este dispositivo.";
-  else if (isDenied) copy = "Las notificaciones están bloqueadas. Podés habilitarlas desde los ajustes del dispositivo.";
+  else if (isDenied) copy = "Las notificaciones están bloqueadas. Activá el permiso desde Ajustes del iPhone.";
 
   return (
     <section className="notification-settings" aria-labelledby="notification-settings-title">
