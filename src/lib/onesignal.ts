@@ -32,6 +32,9 @@ type OneSignalDeferred = OneSignalCallback[] | { push: (callback: OneSignalCallb
 declare global {
   interface Window {
     OneSignalDeferred?: OneSignalDeferred;
+    __ideappOneSignalInitialized?: boolean;
+    __ideappOneSignalInstance?: OneSignalSdk;
+    __ideappOneSignalInitializationPromise?: Promise<OneSignalSdk>;
   }
 
   interface Navigator {
@@ -42,7 +45,6 @@ declare global {
 const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim() ?? "";
 const allowLocalhost = process.env.NEXT_PUBLIC_ONESIGNAL_ALLOW_LOCALHOST === "true";
 
-let initializationPromise: Promise<OneSignalSdk> | null = null;
 let rejectInitialization: ((reason?: unknown) => void) | null = null;
 let sdkLoadState: "idle" | "loaded" | "failed" = "idle";
 let sdkLoadError: Error | null = null;
@@ -75,6 +77,10 @@ function debugError(stage: string, error: unknown, context: Record<string, unkno
   }, error);
 }
 
+function isAlreadyInitializedError(error: unknown) {
+  return errorDetails(error).message.toLowerCase().includes("already initialized");
+}
+
 export function getOneSignalErrorMessage(error: unknown) {
   const details = errorDetails(error);
   return `${details.name}: ${details.message}`;
@@ -90,6 +96,14 @@ export function reportOneSignalSdkLoaded() {
 }
 
 export function reportOneSignalSdkLoadError(error: Error) {
+  if (typeof window !== "undefined" && window.__ideappOneSignalInitialized) {
+    debugLog("Error de carga ignorado porque el SDK ya estaba inicializado", {
+      hasReusableInstance: Boolean(window.__ideappOneSignalInstance),
+      originalMessage: error.message,
+    });
+    return;
+  }
+
   sdkLoadState = "failed";
   sdkLoadError = error;
   debugError("Falló la carga del SDK", error, {
@@ -97,7 +111,9 @@ export function reportOneSignalSdkLoadError(error: Error) {
   });
   rejectInitialization?.(error);
   rejectInitialization = null;
-  initializationPromise = null;
+  if (typeof window !== "undefined") {
+    window.__ideappOneSignalInitializationPromise = undefined;
+  }
 }
 
 export function isOneSignalConfigured() {
@@ -143,17 +159,29 @@ export function getNotificationPermission(): NotificationPermissionState {
 }
 
 export function initializeOneSignal(): Promise<OneSignalSdk> {
-  if (initializationPromise) return initializationPromise;
+  if (typeof window === "undefined") {
+    const error = new Error("OneSignal solo puede inicializarse en el navegador.");
+    debugError("Falló la inicialización", error);
+    return Promise.reject(error);
+  }
 
-  initializationPromise = new Promise<OneSignalSdk>((resolve, reject) => {
+  if (window.__ideappOneSignalInitialized && window.__ideappOneSignalInstance) {
+    debugLog("Reutilizando SDK ya inicializado", {
+      source: "window.__ideappOneSignalInstance",
+      permission: getNotificationPermission(),
+    });
+    return Promise.resolve(window.__ideappOneSignalInstance);
+  }
+
+  if (window.__ideappOneSignalInitializationPromise) {
+    debugLog("Reutilizando inicialización en curso", {
+      initialized: Boolean(window.__ideappOneSignalInitialized),
+    });
+    return window.__ideappOneSignalInitializationPromise;
+  }
+
+  const initializationPromise = new Promise<OneSignalSdk>((resolve, reject) => {
     rejectInitialization = reject;
-
-    if (typeof window === "undefined") {
-      const error = new Error("OneSignal solo puede inicializarse en el navegador.");
-      debugError("Falló la inicialización", error);
-      reject(error);
-      return;
-    }
 
     if (!appId) {
       const error = new Error("Falta NEXT_PUBLIC_ONESIGNAL_APP_ID.");
@@ -179,6 +207,15 @@ export function initializeOneSignal(): Promise<OneSignalSdk> {
 
     window.OneSignalDeferred = window.OneSignalDeferred ?? [];
     window.OneSignalDeferred.push(async (oneSignal) => {
+      if (window.__ideappOneSignalInitialized && window.__ideappOneSignalInstance) {
+        debugLog("Callback de inicialización reutilizó la instancia global", {
+          initialized: true,
+        });
+        rejectInitialization = null;
+        resolve(window.__ideappOneSignalInstance);
+        return;
+      }
+
       try {
         debugLog("Inicializando SDK", { sdkAvailable: Boolean(oneSignal) });
         await oneSignal.init({
@@ -187,6 +224,8 @@ export function initializeOneSignal(): Promise<OneSignalSdk> {
           serviceWorkerPath: "push/onesignal/OneSignalSDKWorker.js",
           serviceWorkerParam: { scope: "/push/onesignal/" },
         });
+        window.__ideappOneSignalInitialized = true;
+        window.__ideappOneSignalInstance = oneSignal;
         debugLog("Inicialización completada", {
           pushSupported: oneSignal.Notifications.isPushSupported(),
           permission: getNotificationPermission(),
@@ -197,6 +236,18 @@ export function initializeOneSignal(): Promise<OneSignalSdk> {
         rejectInitialization = null;
         resolve(oneSignal);
       } catch (error) {
+        if (isAlreadyInitializedError(error)) {
+          window.__ideappOneSignalInitialized = true;
+          window.__ideappOneSignalInstance = oneSignal;
+          rejectInitialization = null;
+          debugLog("SDK ya inicializado; instancia existente reutilizada", {
+            originalMessage: errorDetails(error).message,
+            permission: getNotificationPermission(),
+          });
+          resolve(oneSignal);
+          return;
+        }
+
         debugError("Falló la inicialización", error, {
           sdkLoadState,
           appId,
@@ -204,12 +255,13 @@ export function initializeOneSignal(): Promise<OneSignalSdk> {
           serviceWorkerScope: "/push/onesignal/",
         });
         rejectInitialization = null;
-        initializationPromise = null;
+        window.__ideappOneSignalInitializationPromise = undefined;
         reject(error);
       }
     });
   });
 
+  window.__ideappOneSignalInitializationPromise = initializationPromise;
   return initializationPromise;
 }
 
