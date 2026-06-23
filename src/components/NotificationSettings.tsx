@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   getNotificationPermission,
+  getOneSignalErrorMessage,
   isInstalledPwa,
   isOneSignalConfigured,
   requestNotificationPermission,
@@ -67,8 +68,12 @@ export default function NotificationSettings() {
       const permission = await requestNotificationPermission();
       setState({ installed: isInstalledPwa(), permission });
     } catch (requestError) {
-      console.error("No se pudo solicitar permiso de notificaciones", requestError);
-      setError("No pudimos activar los recordatorios. Probá de nuevo.");
+      console.error(
+        "[IdeApp][OneSignal] No se pudo solicitar permiso de notificaciones",
+        requestError,
+        requestError instanceof Error ? requestError.stack : undefined,
+      );
+      setError(getOneSignalErrorMessage(requestError));
     } finally {
       setIsRequesting(false);
     }
