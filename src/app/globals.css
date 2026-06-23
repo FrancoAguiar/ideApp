@@ -196,6 +196,241 @@ p {
   animation: softReveal 220ms ease forwards;
 }
 
+.account-state-screen,
+.onboarding-screen {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100dvh;
+  padding: calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 20% 8%, rgba(255, 224, 113, 0.2), transparent 28%),
+    linear-gradient(180deg, #fbf8ef 0%, var(--bg) 62%, #f4f7ef 100%);
+}
+
+.account-state-screen {
+  align-content: center;
+  gap: 14px;
+  color: #56604f;
+  text-align: center;
+}
+
+.account-state-screen > p {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.account-state-mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: var(--hairline), var(--soft-shadow);
+  font-size: 24px;
+  animation: pulseDot 1.4s infinite ease-in-out;
+}
+
+.account-error-panel,
+.onboarding-panel {
+  width: min(100%, 390px);
+  padding: 26px 22px 24px;
+  border: 1px solid rgba(224, 229, 215, 0.88);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(252, 254, 249, 0.94));
+  box-shadow: var(--hairline), 0 22px 54px rgba(38, 50, 29, 0.1);
+  text-align: center;
+  animation: cardIn 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.account-error-panel h1,
+.onboarding-panel h1 {
+  margin-top: 7px;
+  font-size: 28px;
+  line-height: 1.08;
+}
+
+.account-error-panel button,
+.onboarding-panel form button {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 18px;
+  border-radius: 17px;
+  color: #ffffff;
+  background: var(--green);
+  box-shadow: 0 5px 0 var(--green-dark);
+  font-size: 16px;
+  font-weight: 950;
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.onboarding-brand {
+  color: #3e8f0c;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.onboarding-subtitle {
+  max-width: 310px;
+  margin: 10px auto 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.42;
+  font-weight: 650;
+}
+
+.onboarding-panel form {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.onboarding-panel label,
+.account-name-form label {
+  display: block;
+  margin: 0 0 7px 2px;
+  color: #56604f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.onboarding-panel input,
+.account-name-form input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1.5px solid #e3e8dc;
+  border-radius: 16px;
+  outline: 0;
+  color: var(--ink);
+  background: #fbfcf8;
+  font-size: 16px;
+  font-weight: 680;
+}
+
+.onboarding-panel input:focus,
+.account-name-form input:focus {
+  border-color: #94df62;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(88, 204, 2, 0.08);
+}
+
+.onboarding-panel button:disabled,
+.account-name-form button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.account-form-error {
+  min-height: 19px;
+  margin-top: 9px;
+  color: #b64036;
+  font-size: 12.5px;
+  font-weight: 750;
+  opacity: 0;
+}
+
+.account-form-error.show {
+  opacity: 1;
+}
+
+.account-settings {
+  margin-bottom: 24px;
+}
+
+.account-settings-card {
+  padding: 16px;
+  border: 1px solid rgba(224, 229, 215, 0.94);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff, #fdfefa);
+  box-shadow: var(--hairline), var(--soft-shadow);
+}
+
+.account-detail {
+  display: grid;
+  gap: 4px;
+}
+
+.account-detail + .account-detail {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0e7;
+}
+
+.account-detail span {
+  color: #899382;
+  font-size: 11.5px;
+  font-weight: 900;
+}
+
+.account-detail strong {
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 850;
+}
+
+.account-edit,
+.account-signout,
+.account-cancel,
+.account-save {
+  min-height: 44px;
+  border-radius: 15px;
+  font-size: 14px;
+  font-weight: 900;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.account-edit {
+  width: 100%;
+  margin-top: 18px;
+  color: #317a02;
+  background: var(--green-soft);
+  box-shadow: 0 4px 0 rgba(67, 163, 0, 0.2);
+}
+
+.account-signout {
+  width: 100%;
+  margin-top: 10px;
+  color: #b64036;
+  background: #fff0ee;
+  box-shadow: 0 4px 0 rgba(217, 79, 69, 0.18);
+}
+
+.account-name-form {
+  text-align: left;
+}
+
+.account-form-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.account-cancel {
+  color: #4d5b44;
+  background: #f6f8f1;
+  box-shadow: 0 4px 0 #dfe6d5;
+}
+
+.account-save {
+  color: #ffffff;
+  background: var(--green);
+  box-shadow: 0 4px 0 var(--green-dark);
+}
+
+.account-error-panel button:active,
+.onboarding-panel form button:active:not(:disabled),
+.account-edit:active,
+.account-signout:active,
+.account-cancel:active,
+.account-save:active:not(:disabled) {
+  transform: translateY(3px) scale(0.98);
+  box-shadow: 0 1px 0 rgba(32, 37, 31, 0.14);
+}
+
 .welcome-screen {
   position: fixed;
   inset: 0;

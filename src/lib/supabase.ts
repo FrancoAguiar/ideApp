@@ -3,6 +3,15 @@ export type AuthUser = {
   email?: string;
 };
 
+export type UserProfile = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  onboarding_completed: boolean | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 export type Idea = {
   id: string;
   user_id?: string | null;
@@ -24,17 +33,23 @@ export type CreateIdeaInput = Omit<Idea, "id" | "created_at"> & {
 
 export type UpdateIdeaInput = Partial<Omit<Idea, "id" | "user_id">>;
 
-type AuthSession = {
+export type AuthSession = {
   access_token: string;
   refresh_token: string;
   expires_at: number;
   user?: AuthUser;
 };
 
+export type AuthChangeEvent = "SIGNED_IN" | "SIGNED_OUT" | "TOKEN_REFRESHED";
+export type UpdateUserProfileInput = {
+  full_name?: string | null;
+  onboarding_completed?: boolean;
+};
+
 const AUTH_STORAGE_KEY = "ideapp_supabase_auth";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const authListeners = new Set<(user: AuthUser | null) => void>();
+const authListeners = new Set<(event: AuthChangeEvent, session: AuthSession | null) => void>();
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
@@ -65,8 +80,8 @@ function writeSession(session: AuthSession | null) {
   }
 }
 
-function emitAuthChange(user: AuthUser | null) {
-  authListeners.forEach((listener) => listener(user));
+function emitAuthChange(event: AuthChangeEvent, session: AuthSession | null) {
+  authListeners.forEach((listener) => listener(event, session));
 }
 
 function parseAuthCallback() {
@@ -102,7 +117,7 @@ async function refreshSession(session: AuthSession) {
 
   if (!response.ok) {
     writeSession(null);
-    emitAuthChange(null);
+    emitAuthChange("SIGNED_OUT", null);
     throw new Error(`Supabase session refresh failed: ${response.status}`);
   }
 
@@ -120,6 +135,7 @@ async function refreshSession(session: AuthSession) {
   };
 
   writeSession(nextSession);
+  emitAuthChange("TOKEN_REFRESHED", nextSession);
   return nextSession;
 }
 
@@ -144,26 +160,35 @@ async function requestAuthUser(session: AuthSession) {
   return (await response.json()) as AuthUser;
 }
 
-export async function getCurrentUser() {
+export async function getCurrentSession() {
   if (!isSupabaseConfigured) return null;
 
   const session = await getValidSession();
   if (!session) return null;
 
+  if (session.user) return session;
+
   try {
     const user = await requestAuthUser(session);
-    writeSession({ ...session, user });
-    emitAuthChange(user);
-    return user;
+    const nextSession = { ...session, user };
+    writeSession(nextSession);
+    return nextSession;
   } catch (error) {
     console.error("Failed to get current Supabase user", error);
     writeSession(null);
-    emitAuthChange(null);
+    emitAuthChange("SIGNED_OUT", null);
     return null;
   }
 }
 
+export async function getCurrentUser() {
+  return (await getCurrentSession())?.user ?? null;
+}
+
 export async function signInWithMagicLink(email: string) {
+  const cleanEmail = email.trim();
+  if (!cleanEmail) throw new Error("Email is required");
+
   const { url, anonKey } = getSupabaseConfig();
   const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/` : "";
   const response = await fetch(`${url}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
@@ -172,7 +197,7 @@ export async function signInWithMagicLink(email: string) {
       apikey: anonKey,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, create_user: true }),
+    body: JSON.stringify({ email: cleanEmail, create_user: true }),
   });
 
   if (!response.ok) {
@@ -202,16 +227,19 @@ export async function signOut() {
     }
   } finally {
     writeSession(null);
-    emitAuthChange(null);
+    emitAuthChange("SIGNED_OUT", null);
   }
 }
 
-export function listenToAuthChanges(callback: (user: AuthUser | null) => void) {
+export function listenToAuthChanges(
+  callback: (event: AuthChangeEvent, session: AuthSession | null) => void,
+) {
   authListeners.add(callback);
 
   const handleStorage = (event: StorageEvent) => {
     if (event.key !== AUTH_STORAGE_KEY) return;
-    callback(readSession()?.user ?? null);
+    const session = readSession();
+    callback(session ? "SIGNED_IN" : "SIGNED_OUT", session);
   };
 
   if (typeof window !== "undefined") window.addEventListener("storage", handleStorage);
@@ -294,4 +322,56 @@ export async function updateIdea(id: string, userId: string, idea: UpdateIdeaInp
 export async function deleteIdea(id: string, userId: string) {
   const path = `ideas?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(userId)}`;
   await requestSupabase<null>(path, { method: "DELETE" });
+}
+
+export async function getProfile(userId: string) {
+  const path = `profiles?select=*&id=eq.${encodeURIComponent(userId)}&limit=1`;
+  const profiles = await requestSupabase<UserProfile[]>(path);
+  return profiles[0] ?? null;
+}
+
+export async function createProfileForUser(user: AuthUser) {
+  const payload = {
+    id: user.id,
+    email: user.email ?? null,
+    full_name: null,
+    onboarding_completed: false,
+  };
+  const profiles = await requestSupabase<UserProfile[]>("profiles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  if (!profiles[0]) throw new Error("Supabase did not return the created profile");
+  return profiles[0];
+}
+
+export async function getOrCreateProfile(user: AuthUser) {
+  const existingProfile = await getProfile(user.id);
+  if (existingProfile) return existingProfile;
+
+  try {
+    return await createProfileForUser(user);
+  } catch (error) {
+    const profileCreatedByAnotherRequest = await getProfile(user.id);
+    if (profileCreatedByAnotherRequest) return profileCreatedByAnotherRequest;
+    throw error;
+  }
+}
+
+export async function updateUserProfile(userId: string, data: UpdateUserProfileInput) {
+  const payload: UpdateUserProfileInput & { updated_at: string } = {
+    updated_at: new Date().toISOString(),
+  };
+  if (data.full_name !== undefined) payload.full_name = data.full_name;
+  if (data.onboarding_completed !== undefined) {
+    payload.onboarding_completed = data.onboarding_completed;
+  }
+
+  const path = `profiles?id=eq.${encodeURIComponent(userId)}`;
+  const profiles = await requestSupabase<UserProfile[]>(path, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  if (!profiles[0]) throw new Error("Supabase did not return the updated profile");
+  return profiles[0];
 }
