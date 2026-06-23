@@ -4,7 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import AccountOnboarding from "@/components/AccountOnboarding";
 import AccountSettings from "@/components/AccountSettings";
 import { AccountErrorScreen, AccountLoadingScreen } from "@/components/AccountScreens";
+import LocalAccountSettings from "@/components/LocalAccountSettings";
+import LocalProfileOnboarding from "@/components/LocalProfileOnboarding";
 import LoginScreen from "@/components/LoginScreen";
+import { readLocalProfile, type LocalProfile } from "@/lib/local-profile";
 import {
   createIdea,
   deleteIdea as deleteIdeaFromSupabase,
@@ -76,6 +79,10 @@ type EditIdeaDraft = {
 
 const IDEAS_STORAGE_KEY = "ideapp_ideas";
 const DELETED_IDEAS_STORAGE_KEY = "ideapp_deleted_idea_ids";
+const PERSONAL_IDEAS_OWNER_ID = "personal-v1";
+
+// Auth real pausado temporalmente para V1 personal.
+const AUTH_REAL_PAUSED: boolean = true;
 
 const screenMeta: Record<ScreenId, { title: string; subtitle: string; eyebrow: string }> = {
   homeScreen: {
@@ -321,7 +328,12 @@ function userStorageKey(baseKey: string, userId: string) {
 
 function readStoredIdeas(userId: string) {
   try {
-    const rawIdeas = window.localStorage.getItem(userStorageKey(IDEAS_STORAGE_KEY, userId));
+    const scopedIdeas = window.localStorage.getItem(userStorageKey(IDEAS_STORAGE_KEY, userId));
+    const rawIdeas = scopedIdeas ?? (
+      userId === PERSONAL_IDEAS_OWNER_ID
+        ? window.localStorage.getItem(IDEAS_STORAGE_KEY)
+        : null
+    );
     if (!rawIdeas) return [];
 
     const parsedIdeas: unknown = JSON.parse(rawIdeas);
@@ -348,7 +360,12 @@ function writeStoredIdeas(userId: string, ideas: StoredIdea[]) {
 
 function readDeletedIdeaIds(userId: string) {
   try {
-    const rawIds = window.localStorage.getItem(userStorageKey(DELETED_IDEAS_STORAGE_KEY, userId));
+    const scopedIds = window.localStorage.getItem(userStorageKey(DELETED_IDEAS_STORAGE_KEY, userId));
+    const rawIds = scopedIds ?? (
+      userId === PERSONAL_IDEAS_OWNER_ID
+        ? window.localStorage.getItem(DELETED_IDEAS_STORAGE_KEY)
+        : null
+    );
     const parsedIds: unknown = rawIds ? JSON.parse(rawIds) : [];
     return Array.isArray(parsedIds)
       ? parsedIds.filter((id): id is string => typeof id === "string")
@@ -675,6 +692,8 @@ function WelcomeScreen({ onEnter, isExiting }: { onEnter: () => void; isExiting:
 }
 
 export default function Home() {
+  const [localProfile, setLocalProfile] = useState<LocalProfile | null>(null);
+  const [localProfileLoading, setLocalProfileLoading] = useState(true);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -776,6 +795,13 @@ export default function Home() {
   useEffect(() => {
     isMounted.current = true;
 
+    if (AUTH_REAL_PAUSED) {
+      setAuthLoading(false);
+      return () => {
+        isMounted.current = false;
+      };
+    }
+
     const stopListening = listenToAuthChanges((event, nextSession) => {
       if (!isMounted.current) return;
 
@@ -815,21 +841,36 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!user || !profile) {
+    if (!AUTH_REAL_PAUSED) {
+      setLocalProfileLoading(false);
+      return;
+    }
+
+    setLocalProfile(readLocalProfile());
+    setLocalProfileLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const ownerId = AUTH_REAL_PAUSED ? PERSONAL_IDEAS_OWNER_ID : user?.id;
+    if (
+      !ownerId ||
+      (AUTH_REAL_PAUSED && (!localProfile || localProfileLoading)) ||
+      (!AUTH_REAL_PAUSED && !profile)
+    ) {
       setStoredIdeas([]);
       setHasLoadedUserIdeas(false);
       return;
     }
 
     let shouldApply = true;
-    const userId = user.id;
+    const userId = ownerId;
 
     async function loadIdeas() {
       let loadedIdeas: StoredIdea[] = [];
       const deletedIdeaIds = new Set(readDeletedIdeaIds(userId));
       const localIdeas = readStoredIdeas(userId).filter((idea) => !deletedIdeaIds.has(idea.id));
 
-      if (isSupabaseConfigured) {
+      if (!AUTH_REAL_PAUSED && isSupabaseConfigured) {
         try {
           const supabaseIdeas = await getIdeas(userId);
           loadedIdeas = supabaseIdeas
@@ -855,9 +896,10 @@ export default function Home() {
     return () => {
       shouldApply = false;
     };
-  }, [user, profile]);
+  }, [user, profile, localProfile, localProfileLoading]);
 
   const meta = screenMeta[activeScreen];
+  const ideasOwnerId = AUTH_REAL_PAUSED ? PERSONAL_IDEAS_OWNER_ID : user?.id ?? null;
 
   function showFeedback(message: string) {
     setFeedback(message);
@@ -929,7 +971,7 @@ export default function Home() {
   }
 
   async function saveIdea() {
-    if (!user) return;
+    if (!ideasOwnerId) return;
 
     if (!preparedIdea) {
       organizeIdea();
@@ -954,9 +996,9 @@ export default function Home() {
     };
 
     let ideaToDisplay = newIdea;
-    let shouldUseLocalStorage = !isSupabaseConfigured;
+    let shouldUseLocalStorage = AUTH_REAL_PAUSED || !isSupabaseConfigured;
 
-    if (isSupabaseConfigured) {
+    if (!AUTH_REAL_PAUSED && isSupabaseConfigured && user) {
       try {
         const createdIdea = await createIdea(toSupabaseIdeaInput(newIdea, user.id));
         ideaToDisplay = toStoredIdea(createdIdea);
@@ -968,7 +1010,7 @@ export default function Home() {
     setStoredIdeas((ideas) => {
       const nextIdeas = [ideaToDisplay, ...ideas];
       if (shouldUseLocalStorage) {
-        writeStoredIdeas(user.id, nextIdeas);
+        writeStoredIdeas(ideasOwnerId, nextIdeas);
       }
       return nextIdeas;
     });
@@ -980,7 +1022,7 @@ export default function Home() {
   }
 
   async function toggleIdeaFlag(idea: Idea, flag: "isFavorite" | "isPinned") {
-    if (!user) return;
+    if (!ideasOwnerId) return;
 
     const baseIdeas = storedIdeas;
     const currentIdea = baseIdeas.find((storedIdea) => storedIdea.id === idea.id);
@@ -994,9 +1036,9 @@ export default function Home() {
     );
 
     setStoredIdeas(nextIdeas);
-    writeStoredIdeas(user.id, nextIdeas);
+    writeStoredIdeas(ideasOwnerId, nextIdeas);
 
-    if (!isSupabaseConfigured) {
+    if (AUTH_REAL_PAUSED || !isSupabaseConfigured || !user) {
       return;
     }
 
@@ -1042,7 +1084,7 @@ export default function Home() {
   }
 
   function saveEditedIdea() {
-    if (!editDraft || !user) return;
+    if (!editDraft || !ideasOwnerId) return;
 
     const title = cleanText(editDraft.title);
     const summary = cleanText(editDraft.summary);
@@ -1054,10 +1096,10 @@ export default function Home() {
     );
 
     setStoredIdeas(nextIdeas);
-    writeStoredIdeas(user.id, nextIdeas);
+    writeStoredIdeas(ideasOwnerId, nextIdeas);
     setEditDraft(null);
 
-    if (!isSupabaseConfigured) return;
+    if (AUTH_REAL_PAUSED || !isSupabaseConfigured || !user) return;
 
     void updateIdea(editDraft.id, user.id, { title, summary }).catch((error) => {
       console.error("Failed to update idea in Supabase; local changes were preserved.", error);
@@ -1069,7 +1111,7 @@ export default function Home() {
   }
 
   function confirmDeleteIdea() {
-    if (!ideaPendingDelete || !user) return;
+    if (!ideaPendingDelete || !ideasOwnerId) return;
 
     const idea = ideaPendingDelete;
     const baseIdeas = storedIdeas;
@@ -1081,7 +1123,7 @@ export default function Home() {
 
     window.setTimeout(() => {
       setStoredIdeas(nextIdeas);
-      writeStoredIdeas(user.id, nextIdeas);
+      writeStoredIdeas(ideasOwnerId, nextIdeas);
       setDeletingIdeaId(null);
       setTotal((value) => Math.max(0, value - 1));
 
@@ -1090,7 +1132,7 @@ export default function Home() {
       }
     }, 220);
 
-    if (!isSupabaseConfigured) return;
+    if (AUTH_REAL_PAUSED || !isSupabaseConfigured || !user) return;
 
     void deleteIdeaFromSupabase(idea.id, user.id).catch((error) => {
       console.error("Failed to delete idea from Supabase", error);
@@ -1142,42 +1184,57 @@ export default function Home() {
     }
   }
 
-  if (authLoading) {
-    return <AccountLoadingScreen message="IdeApp está cargando…" />;
+  if (AUTH_REAL_PAUSED) {
+    if (!hasCheckedWelcome || localProfileLoading) {
+      return <AccountLoadingScreen message="IdeApp está cargando…" />;
+    }
+
+    if (showWelcome) {
+      return <WelcomeScreen onEnter={enterApp} isExiting={isWelcomeExiting} />;
+    }
+
+    if (!localProfile) {
+      return <LocalProfileOnboarding onComplete={setLocalProfile} />;
+    }
+  } else {
+    if (authLoading) {
+      return <AccountLoadingScreen message="IdeApp está cargando…" />;
+    }
+
+    if (accountError) {
+      return (
+        <AccountErrorScreen
+          onRetry={() => {
+            if (session) void loadProfileForSession(session);
+            else void initializeAccount();
+          }}
+        />
+      );
+    }
+
+    if (!session || !user) {
+      return <LoginScreen />;
+    }
+
+    if (profileLoading || !profile) {
+      return <AccountLoadingScreen message="Preparando tu cuenta…" />;
+    }
+
+    if (!profile.full_name?.trim() || !profile.onboarding_completed) {
+      return <AccountOnboarding userId={user.id} onComplete={setProfile} />;
+    }
+
+    if (!hasCheckedWelcome) {
+      return null;
+    }
+
+    if (showWelcome) {
+      return <WelcomeScreen onEnter={enterApp} isExiting={isWelcomeExiting} />;
+    }
   }
 
-  if (accountError) {
-    return (
-      <AccountErrorScreen
-        onRetry={() => {
-          if (session) void loadProfileForSession(session);
-          else void initializeAccount();
-        }}
-      />
-    );
-  }
-
-  if (!session || !user) {
-    return <LoginScreen />;
-  }
-
-  if (profileLoading || !profile) {
-    return <AccountLoadingScreen message="Preparando tu cuenta…" />;
-  }
-
-  if (!profile.full_name?.trim() || !profile.onboarding_completed) {
-    return <AccountOnboarding userId={user.id} onComplete={setProfile} />;
-  }
-
-  if (!hasCheckedWelcome) {
-    return null;
-  }
-
-  if (showWelcome) {
-    return <WelcomeScreen onEnter={enterApp} isExiting={isWelcomeExiting} />;
-  }
-
-  const firstName = profile.full_name.trim().split(/\s+/)[0];
+  const fullName = AUTH_REAL_PAUSED ? localProfile?.fullName : profile?.full_name;
+  const firstName = fullName?.trim().split(/\s+/)[0] ?? "";
 
   const monthGroups = groupStoredIdeasByMonth(storedIdeas);
   const sourceIdeas = storedIdeas;
@@ -1412,12 +1469,21 @@ export default function Home() {
         </section>
 
         <section className={`screen ${activeScreen === "settingsScreen" ? "active" : ""}`}>
-          <AccountSettings
-            user={user}
-            profile={profile}
-            onProfileUpdated={setProfile}
-            onSignOut={() => void handleSignOut()}
-          />
+          {AUTH_REAL_PAUSED
+            ? localProfile && (
+                <LocalAccountSettings
+                  profile={localProfile}
+                  onProfileUpdated={setLocalProfile}
+                />
+              )
+            : user && profile && (
+                <AccountSettings
+                  user={user}
+                  profile={profile}
+                  onProfileUpdated={setProfile}
+                  onSignOut={() => void handleSignOut()}
+                />
+              )}
 
           <div className="section-head">
             <h2 className="section-title">Preferencias</h2>
